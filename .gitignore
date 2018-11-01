@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+# Omnet Specific stuff
+run
+p2p_sim
+out
