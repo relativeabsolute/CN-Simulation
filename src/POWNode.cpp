@@ -8,13 +8,11 @@
 #include "POWNode.h"
 #include <memory>
 
-POWNode::POWNode() {
-    // TODO Auto-generated constructor stub
+POWNode::POWNode() : nextGate(0) {
 
 }
 
 POWNode::~POWNode() {
-    // TODO Auto-generated destructor stub
 }
 
 void POWNode::initialize() {
@@ -31,11 +29,21 @@ void POWNode::initialize() {
             EV << "Attempting to connect from " << getIndex() << " to " << *it << std::endl;
             sprintf(path, "node[%d]", *it);
             POWNode *toCheck = check_and_cast<POWNode*>(getModuleByPath(path));
-            EV << "Node " << path << " is ";
             if (!toCheck->isOnline()) {
-                EV << "not ";
+                EV << "Node " << *it << " is not online.  Moving onto next node." << std::endl;
+            } else {
+                // TODO: put limit on number of gates/connections?
+                cGate *destGateIn, *destGateOut;
+                toCheck->getOrCreateFirstUnconnectedGatePair("gate", false, true, destGateIn, destGateOut);
+
+                cGate *srcGateIn, *srcGateOut;
+                getOrCreateFirstUnconnectedGatePair("gate", false, true, srcGateIn, srcGateOut);
+
+                srcGateOut->connectTo(destGateIn);
+                EV << "Outbound connection established" << std::endl;
+                destGateOut->connectTo(srcGateIn);
+                EV << "Inbound connection established" << std::endl;
             }
-            EV << "online." << std::endl;
         }
     }
     delete[] path;
@@ -47,4 +55,12 @@ bool POWNode::isOnline() const {
 
 void POWNode::handleMessage(cMessage *msg) {
 
+}
+
+cGate *POWNode::getNextAvailableGate(cGate::Type half) {
+    if (nextGate < gateSize("gate")) {
+        return gateHalf("gate", half, nextGate++);
+    } else {
+        return nullptr;
+    }
 }

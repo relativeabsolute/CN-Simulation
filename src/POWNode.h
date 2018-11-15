@@ -17,11 +17,15 @@ class POWNode: public P2PNode {
 public:
     POWNode();
     virtual ~POWNode();
+
+    cGate *getNextAvailableGate(cGate::Type half);
 protected:
     virtual void initialize() override;
     virtual void handleMessage(cMessage *msg) override;
 
     bool isOnline() const;
+private:
+    int nextGate;
 };
 
 Define_Module(POWNode)
