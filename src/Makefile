@@ -30,7 +30,7 @@ PROJECTRELATIVE_PATH = src
 O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 
 # Object files for local .cpp, .msg and .sm files
-OBJS = $O/P2PNode.o $O/p2p_msg_m.o
+OBJS = $O/P2PRandomTopologyNode.o $O/POWNode.o $O/p2p_msg_m.o
 
 # Message files
 MSGFILES = \

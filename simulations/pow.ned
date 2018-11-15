@@ -15,15 +15,19 @@
 
 package p2p_sim.simulations;
 
-simple P2PNode {
-    gates:
-        inout gate[];
+simple POWNode extends P2PNode {
+    parameters:
+        string defaultNodeList; // this will be assigned by the network
+        bool online = default(true);
+    @class(POWNode);
 }
 
-network P2PNetwork
-{
+network POWNetwork {
     parameters:
         int count;
+        // space-separated list of node indices to connect to
+        string defaultNodeList;
+        node[*].defaultNodeList = defaultNodeList;
     submodules:
-        node[count]: P2PNode;
+        node[count]: POWNode;
 }

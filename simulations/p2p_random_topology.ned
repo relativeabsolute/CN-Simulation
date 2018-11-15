@@ -15,15 +15,18 @@
 
 package p2p_sim.simulations;
 
-simple P2PNode {
-    gates:
-        inout gate[];
+simple P2PRandomTopologyNode extends P2PNode {
+    @class(P2PRandomTopologyNode);
 }
 
-network P2PNetwork
-{
+network P2PNetRandomTopology {
     parameters:
         int count;
+        double connectedness;
     submodules:
-        node[count]: P2PNode;
+        node[count] : P2PRandomTopologyNode;
+    connections allowunconnected:
+        for i=0..count-1, for j=0..count-1 {
+            node[i].gate++ <--> node[j].gate++ if i!=j && uniform(0,1) < connectedness;
+        }
 }

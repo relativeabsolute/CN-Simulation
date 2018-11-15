@@ -1,27 +1,32 @@
 /*
- * P2PNode.cpp
+ * P2PRandomTopologyNode.cpp
  *
- *  Created on: Nov 1, 2018
+ *  Created on: Nov 14, 2018
  *      Author: jburke
  */
 
-#include "P2PNode.h"
-#include <stdio.h>
+#include "P2PRandomTopologyNode.h"
+#include <omnetpp.h>
 
-P2PNode::P2PNode() {
+using namespace omnetpp;
+
+P2PRandomTopologyNode::P2PRandomTopologyNode() {
+    // TODO Auto-generated constructor stub
+
 }
 
-P2PNode::~P2PNode() {
+P2PRandomTopologyNode::~P2PRandomTopologyNode() {
+    // TODO Auto-generated destructor stub
 }
 
-void P2PNode::initialize() {
+void P2PRandomTopologyNode::initialize() {
     if (getIndex() == 0) {
         P2P_Msg *message = generateNewMessage();
         scheduleAt(0.0, message);
     }
 }
 
-void P2PNode::handleMessage(cMessage *msg) {
+void P2PRandomTopologyNode::handleMessage(cMessage *msg) {
     P2P_Msg *_msg = check_and_cast<P2P_Msg *>(msg);
 
     if (_msg->getDestination() == getIndex()) {
@@ -38,7 +43,17 @@ void P2PNode::handleMessage(cMessage *msg) {
     }
 }
 
-P2P_Msg *P2PNode::generateNewMessage() {
+void P2PRandomTopologyNode::forwardMessage(P2P_Msg *msg) {
+    msg->setHopCount(msg->getHopCount() + 1);
+
+    int n = gateSize("gate");
+    int k = intuniform(0, n-1);
+
+    EV << "Forwarding message " << msg << " on gate[" << k << "]\n";
+    send(msg, "gate$o", k);
+}
+
+P2P_Msg *P2PRandomTopologyNode::generateNewMessage() {
     int src = getIndex();
     int n = getVectorSize();
     int dest = intuniform(0, n-2);
@@ -54,14 +69,4 @@ P2P_Msg *P2PNode::generateNewMessage() {
     msg->setDestination(dest);
 
     return msg;
-}
-
-void P2PNode::forwardMessage(P2P_Msg *msg) {
-    msg->setHopCount(msg->getHopCount() + 1);
-
-    int n = gateSize("gate");
-    int k = intuniform(0, n-1);
-
-    EV << "Forwarding message " << msg << " on gate[" << k << "]\n";
-    send(msg, "gate$o", k);
 }
