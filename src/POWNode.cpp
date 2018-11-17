@@ -41,13 +41,23 @@ void POWNode::initConnections() {
                 EV << "Outbound connection established" << std::endl;
                 destGateOut->connectTo(srcGateIn);
                 EV << "Inbound connection established" << std::endl;
+                nodeIndexToGateMap[*it] = destGateOut;
+                EV << "Mapping " << *it << " to gate " << destGateOut << std::endl;
             }
         }
     }
     delete[] path;
 }
 
+void POWNode::setupMessageHandlers() {
+    messageHandlers["getknownnodes"] = &POWNode::handleGetKnownNodesMessage;
+}
+
 void POWNode::initialize() {
+    // set up step 0:
+    // set up message handlers
+    setupMessageHandlers();
+
     // set up step 1:
     // attempt to establish connections with the list of default nodes
     // TODO: have node check for its data file, and if there is one read list of known nodes from it
@@ -60,6 +70,13 @@ void POWNode::initialize() {
     // TODO: iterate over nodes and send a new getknownnodes message
     // need to handle mapping of nodes to gates (since connection to node n is not necessarily
     // over gate index n
+    for (auto mapIterator = nodeIndexToGateMap.begin(); mapIterator != nodeIndexToGateMap.end(); ++mapIterator) {
+        // it->first is the index of the destination node
+        // it->second is the gate index to send over
+        POWMsg *newMsg = generateGetKnownNodesMessage();
+        EV << newMsg << std::endl;
+        send(newMsg, mapIterator->second);
+    }
 }
 
 bool POWNode::isOnline() const {
@@ -67,16 +84,24 @@ bool POWNode::isOnline() const {
 }
 
 void POWNode::handleMessage(cMessage *msg) {
+    EV << "Received message.  Sending to appropriate handler." << std::endl;
     POWMsg *powMsg = check_and_cast<POWMsg*>(msg);
-
+    std::string methodName = powMsg->getName();
+    messageHandlers[methodName](*this, powMsg);
+    delete msg;
 }
 
-POWMsg *POWNode::generateGetKnownNodesMessage(int dest) {
+POWMsg *POWNode::generateGetKnownNodesMessage() {
     POWMsg *msg = new POWMsg("getknownnodes");
-    msg->setSource(getIndex());
+    msg->setSrc(getIndex());
 
     // TODO: fix this to send over known nodes read from file
     msg->setData("<data><known_nodes></known_nodes></data>");
 
     return msg;
+}
+
+void POWNode::handleGetKnownNodesMessage(POWMsg *msg) {
+    EV << "getknownnodes message received by " << getIndex() << " from " << msg->getSrc() << std::endl;
+    // TODO: add the sending node to our list of known nodes
 }

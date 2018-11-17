@@ -89,6 +89,7 @@ $(document).ready(function(){initNavTree('class_p_o_w_node.html','');});
   <div class="summary">
 <a href="#pro-methods">Protected Member Functions</a> &#124;
 <a href="#pri-methods">Private Member Functions</a> &#124;
+<a href="#pri-attribs">Private Attributes</a> &#124;
 <a href="class_p_o_w_node-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">POWNode Class Reference</div>  </div>
@@ -119,14 +120,27 @@ Protected Member Functions</h2></td></tr>
 Private Member Functions</h2></td></tr>
 <tr class="memitem:a9b7acb8cb9799cc7942509d38f3e996b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a9b7acb8cb9799cc7942509d38f3e996b">initConnections</a> ()</td></tr>
 <tr class="separator:a9b7acb8cb9799cc7942509d38f3e996b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af7a157254dbea1935b8f12bd79da233a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_p_o_w_msg.html">POWMsg</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#af7a157254dbea1935b8f12bd79da233a">generateGetKnownNodesMessage</a> (int dest)</td></tr>
-<tr class="separator:af7a157254dbea1935b8f12bd79da233a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba557d49eefb8cf9a349ace74f34cf59"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#aba557d49eefb8cf9a349ace74f34cf59">setupMessageHandlers</a> ()</td></tr>
+<tr class="separator:aba557d49eefb8cf9a349ace74f34cf59"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7639d828f09d030cfaa4ef2c3fd1484e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_p_o_w_msg.html">POWMsg</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a7639d828f09d030cfaa4ef2c3fd1484e">generateGetKnownNodesMessage</a> ()</td></tr>
+<tr class="separator:a7639d828f09d030cfaa4ef2c3fd1484e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae871097242023490f80d8d98d9bf6cd5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#ae871097242023490f80d8d98d9bf6cd5">handleGetKnownNodesMessage</a> (<a class="el" href="class_p_o_w_msg.html">POWMsg</a> *msg)</td></tr>
+<tr class="separator:ae871097242023490f80d8d98d9bf6cd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-attribs"></a>
+Private Attributes</h2></td></tr>
+<tr class="memitem:ab633fb2eb5b905e98d7f722b836bf5fb"><td class="memItemLeft" align="right" valign="top"><a id="ab633fb2eb5b905e98d7f722b836bf5fb"></a>
+std::map&lt; std::string, std::function&lt; void(<a class="el" href="class_p_o_w_node.html">POWNode</a> &amp;, <a class="el" href="class_p_o_w_msg.html">POWMsg</a> *)&gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>messageHandlers</b></td></tr>
+<tr class="separator:ab633fb2eb5b905e98d7f722b836bf5fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7d92ed8018f9cf7bdc12e252fa182ec0"><td class="memItemLeft" align="right" valign="top"><a id="a7d92ed8018f9cf7bdc12e252fa182ec0"></a>
+std::map&lt; int, cGate * &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>nodeIndexToGateMap</b></td></tr>
+<tr class="separator:a7d92ed8018f9cf7bdc12e252fa182ec0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Node in a proof of work based blockchain network (i.e., Bitcoin, Litecoin, etc). </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a id="af7a157254dbea1935b8f12bd79da233a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af7a157254dbea1935b8f12bd79da233a">&#9670;&nbsp;</a></span>generateGetKnownNodesMessage()</h2>
+<a id="a7639d828f09d030cfaa4ef2c3fd1484e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7639d828f09d030cfaa4ef2c3fd1484e">&#9670;&nbsp;</a></span>generateGetKnownNodesMessage()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -137,8 +151,7 @@ Private Member Functions</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="class_p_o_w_msg.html">POWMsg</a> * POWNode::generateGetKnownNodesMessage </td>
           <td>(</td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>dest</em></td><td>)</td>
+          <td class="paramname"></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -148,13 +161,39 @@ Private Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Create a new message that will ask a node to send over its list of known nodes. This method does <em>not</em> handle actually sending the message! </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Create a new message that will ask a node to send over its list of known nodes. This method does <em>not</em> handle actually sending the message! </p><dl class="section return"><dt>Returns</dt><dd>Message containing our list of currently known nodes and what node index we are. </dd></dl>
+
+</div>
+</div>
+<a id="ae871097242023490f80d8d98d9bf6cd5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae871097242023490f80d8d98d9bf6cd5">&#9670;&nbsp;</a></span>handleGetKnownNodesMessage()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void POWNode::handleGetKnownNodesMessage </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="class_p_o_w_msg.html">POWMsg</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Handle an incoming getknownnodes message. Will send a getnodeinfo message in response if necessary, and add the sending node to the recipient's list of known nodes if necessary. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">dest</td><td><em>Node</em> index to send the message to. </td></tr>
+    <tr><td class="paramname">msg</td><td>Message to handle. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Message containing our list of currently known nodes and what node index we are. </dd></dl>
 
 </div>
 </div>
@@ -268,6 +307,32 @@ Private Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 <p>Check if the node is online (would be handled by TCP timeouts in real network). Connections will not be established with an offline node. </p><dl class="section return"><dt>Returns</dt><dd>True if the node is online and can be connected to, false otherwise. </dd></dl>
+
+</div>
+</div>
+<a id="aba557d49eefb8cf9a349ace74f34cf59"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aba557d49eefb8cf9a349ace74f34cf59">&#9670;&nbsp;</a></span>setupMessageHandlers()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void POWNode::setupMessageHandlers </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Connect message handlers using the name to member function map. </p>
 
 </div>
 </div>

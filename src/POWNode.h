@@ -8,9 +8,11 @@
 #ifndef POWNODE_H_
 #define POWNODE_H_
 
+#include <map>
 #include <omnetpp.h>
 #include "P2PNode.h"
 #include "pow_msg_m.h"
+#include <functional>
 
 using namespace omnetpp;
 
@@ -44,12 +46,25 @@ private:
      */
     void initConnections();
 
+    /*! Connect message handlers using the name to member function map.
+     *
+     */
+    void setupMessageHandlers();
+
     /*! Create a new message that will ask a node to send over its list of known nodes.
      * This method does *not* handle actually sending the message!
-     * \param dest *Node* index to send the message to.
      * \returns Message containing our list of currently known nodes and what node index we are.
      */
-    POWMsg *generateGetKnownNodesMessage(int dest);
+    POWMsg *generateGetKnownNodesMessage();
+
+    std::map<std::string, std::function<void(POWNode &, POWMsg *)> > messageHandlers;
+    std::map<int, cGate*> nodeIndexToGateMap;
+
+    /*! Handle an incoming getknownnodes message.  Will send a getnodeinfo message in response if necessary, and add the sending
+     * node to the recipient's list of known nodes if necessary.
+     * \param msg Message to handle.
+     */
+    void handleGetKnownNodesMessage(POWMsg *msg);
 };
 
 Define_Module(POWNode)

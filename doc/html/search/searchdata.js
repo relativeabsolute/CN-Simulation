@@ -1,8 +1,8 @@
 var indexSectionsWithContent =
 {
-  0: "fghinp",
+  0: "fghinps",
   1: "p",
-  2: "fghi",
+  2: "fghis",
   3: "n"
 };
 
