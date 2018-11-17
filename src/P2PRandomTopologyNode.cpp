@@ -11,12 +11,10 @@
 using namespace omnetpp;
 
 P2PRandomTopologyNode::P2PRandomTopologyNode() {
-    // TODO Auto-generated constructor stub
 
 }
 
 P2PRandomTopologyNode::~P2PRandomTopologyNode() {
-    // TODO Auto-generated destructor stub
 }
 
 void P2PRandomTopologyNode::initialize() {
