@@ -134,10 +134,16 @@ Private Member Functions</h2></td></tr>
 <tr class="separator:ad111538784adaa5e4b01ef66dbe34ea6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0962b1eed45f40e58608d5c56ade1b69"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a0962b1eed45f40e58608d5c56ade1b69">handleVerackMessage</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg)</td></tr>
 <tr class="separator:a0962b1eed45f40e58608d5c56ade1b69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf4d8a2dccbe8bb8c37785fd5d65b32f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#aaf4d8a2dccbe8bb8c37785fd5d65b32f">handleRejectMessage</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg)</td></tr>
+<tr class="separator:aaf4d8a2dccbe8bb8c37785fd5d65b32f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a874642bca342a9b495be3b42b0183d7b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a874642bca342a9b495be3b42b0183d7b">logReceivedMessage</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg) const</td></tr>
 <tr class="separator:a874642bca342a9b495be3b42b0183d7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4ec225ba40863dada493742285cc13b7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a4ec225ba40863dada493742285cc13b7">sendToNode</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg, int nodeIndex)</td></tr>
 <tr class="separator:a4ec225ba40863dada493742285cc13b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aedf49570e8e52708be1d8b4868c4cd1c"><td class="memItemLeft" align="right" valign="top">std::map&lt; std::string, std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#aedf49570e8e52708be1d8b4868c4cd1c">dataToMap</a> (const std::string &amp;messageData) const</td></tr>
+<tr class="separator:aedf49570e8e52708be1d8b4868c4cd1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a82a97ea81d5c61b0a83f96565c314643"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a82a97ea81d5c61b0a83f96565c314643">disconnectNode</a> (int nodeIndex)</td></tr>
+<tr class="separator:a82a97ea81d5c61b0a83f96565c314643"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-attribs"></a>
 Private Attributes</h2></td></tr>
@@ -235,6 +241,71 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>minAcceptedVersionNumb
 
 </div>
 </div>
+<a id="aedf49570e8e52708be1d8b4868c4cd1c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aedf49570e8e52708be1d8b4868c4cd1c">&#9670;&nbsp;</a></span>dataToMap()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::map&lt; std::string, std::string &gt; POWNode::dataToMap </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>messageData</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Convert a data string from a message to a map. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">messageData</td><td>string of data to convert. Formatted by param1key=param1value,param2key=param2value,etc. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Map containing key value pairs for each data parameter </dd></dl>
+
+</div>
+</div>
+<a id="a82a97ea81d5c61b0a83f96565c314643"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a82a97ea81d5c61b0a83f96565c314643">&#9670;&nbsp;</a></span>disconnectNode()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void POWNode::disconnectNode </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>nodeIndex</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Disconnect from the specified node. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">nodeIndex</td><td>Index of node to disconnect </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a0a7a5686195c3a6a02b4cdff09667d62"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0a7a5686195c3a6a02b4cdff09667d62">&#9670;&nbsp;</a></span>handleMessage()</h2>
 
@@ -291,6 +362,38 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>minAcceptedVersionNumb
 </table>
 </div><div class="memdoc">
 <p>Handle an incoming node version message. If the node's version is less than our minimum acceptable protocol version, send a reject message in response, otherwise, send a verack message in response. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>Message to handle. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aaf4d8a2dccbe8bb8c37785fd5d65b32f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaf4d8a2dccbe8bb8c37785fd5d65b32f">&#9670;&nbsp;</a></span>handleRejectMessage()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void POWNode::handleRejectMessage </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="class_p_o_w_message.html">POWMessage</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Handle an incoming reject message. Disconnect from the sender if the data indicates so. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">msg</td><td>Message to handle. </td></tr>
   </table>

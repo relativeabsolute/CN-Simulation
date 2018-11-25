@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['network_20simulation_20documentation',['Network simulation documentation',['../index.html',1,'']]]
+  ['messagegenerator',['MessageGenerator',['../class_message_generator.html',1,'']]]
 ];

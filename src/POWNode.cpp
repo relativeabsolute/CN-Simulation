@@ -57,6 +57,7 @@ void POWNode::initConnections() {
 void POWNode::setupMessageHandlers() {
     messageHandlers[MessageGenerator::MESSAGE_NODE_VERSION_COMMAND] = &POWNode::handleNodeVersionMessage;
     messageHandlers[MessageGenerator::MESSAGE_VERACK_COMMAND] = &POWNode::handleVerackMessage;
+    messageHandlers[MessageGenerator::MESSAGE_REJECT_COMMAND] = &POWNode::handleRejectMessage;
 }
 
 void POWNode::internalInitialize() {
@@ -92,17 +93,9 @@ void POWNode::initialize() {
     // step 2:
     // send node version message on outbound connections
     auto msg = messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_NODE_VERSION_COMMAND, "");
+    // TODO: schedule messages so that simulation occurs in version, verack, version, etc. instead
+    // of all versions then all veracks
     broadcastMessage(msg);
-
-    /*
-    for (auto mapIterator = nodeIndexToGateMap.begin(); mapIterator != nodeIndexToGateMap.end(); ++mapIterator) {
-        // it->first is the index of the destination node
-        // it->second is the gate index to send over
-        auto newMsg = generateGetKnownNodesMessage();
-        EV << newMsg << std::endl;
-        send(newMsg, mapIterator->second);
-    }
-    */
 }
 
 void POWNode::broadcastMessage(POWMessage *msg) {
@@ -121,8 +114,8 @@ bool POWNode::isOnline() const {
 }
 
 void POWNode::handleMessage(cMessage *msg) {
-    EV << "Received message.  Sending to appropriate handler." << std::endl;
     POWMessage *powMessage = check_and_cast<POWMessage *>(msg);
+    logReceivedMessage(powMessage);
     std::string methodName = powMessage->getName();
 
     auto handlerIt = messageHandlers.find(methodName);
@@ -134,30 +127,12 @@ void POWNode::handleMessage(cMessage *msg) {
     delete msg;
 }
 
-/*
-POWMessage *POWNode::generateGetNodeStatusMessage() {
-    POWMessage *result = new POWMessage("getnodestatus");
-    result->setSrc(getIndex()); // this message does not need to carry any data yet
-    return result;
-}
-
-POWMessage *POWNode::generateGetKnownNodesMessage() {
-    POWMessage *msg = new POWMessage("getknownnodes");
-    msg->setSrc(getIndex());
-
-    // TODO: fix this to send over known nodes read from file
-    msg->setData("<data><known_nodes></known_nodes></data>");
-
-    return msg;
-}
-*/
-
 void POWNode::handleNodeVersionMessage(POWMessage *msg) {
-    logReceivedMessage(msg);
     if (msg->getVersionNo() < minAcceptedVersionNumber) {
         // disconnect from nodes that are too old
         EV << "Node " << msg->getSource() << " using obsolete protocol version.  Minimum accepted version is " << minAcceptedVersionNumber << std::endl;
-        sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_REJECT_COMMAND, "reason=obsolete"), msg->getSource());
+        sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_REJECT_COMMAND, "reason=obsolete,disconnect=true"), msg->getSource());
+        disconnectNode(msg->getSource());
     } else {
         EV << "Node " << msg->getSource() << " is compatible.  Sending VERACK." << std::endl;
         sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_VERACK_COMMAND, ""), msg->getSource());
@@ -166,8 +141,37 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
 }
 
 void POWNode::handleVerackMessage(POWMessage *msg) {
-    logReceivedMessage(msg);
     // TODO: update node state for source node if this is an outbound connection
+}
+
+void POWNode::handleRejectMessage(POWMessage *msg) {
+    std::string msgData = msg->getData();
+    if (msgData.empty()) {
+        EV << "Invalid reject message.  Message must contain data." << std::endl;
+    } else {
+        auto dataParamMap = dataToMap(msgData);
+        EV << "Reject reason: " << dataParamMap["reason"] << std::endl;
+        if (dataParamMap["disconnect"] == "true") {
+            disconnectNode(msg->getSource());
+        }
+    }
+}
+
+std::map<std::string, std::string> POWNode::dataToMap(const std::string &messageData) const {
+    cStringTokenizer tokenizer(messageData.c_str(), ",");
+    std::map<std::string, std::string> result;
+    while (tokenizer.hasMoreTokens()) {
+        cStringTokenizer miniToken(tokenizer.nextToken(), "=");
+        result.insert(std::make_pair<std::string,std::string>(miniToken.nextToken(), miniToken.nextToken()));
+    }
+    return result;
+}
+
+void POWNode::disconnectNode(int nodeIndex) {
+    EV << "Disconnecting from node " << nodeIndex << std::endl;
+    auto mapIt = nodeIndexToGateMap.find(nodeIndex);
+    mapIt->second->disconnect();
+    nodeIndexToGateMap.erase(mapIt);
 }
 
 void POWNode::logReceivedMessage(POWMessage *msg) const {

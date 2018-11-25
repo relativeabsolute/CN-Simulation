@@ -85,6 +85,11 @@ private:
      */
     void handleVerackMessage(POWMessage *msg);
 
+    /*! Handle an incoming reject message.  Disconnect from the sender if the data indicates so.
+     * \param msg Message to handle.
+     */
+    void handleRejectMessage(POWMessage *msg);
+
     /*! Print information upon receiving a message.
      * \param msg Message to log.
      */
@@ -95,6 +100,17 @@ private:
      * \param nodeIndex Index of node to send to.
      */
     void sendToNode(POWMessage *msg, int nodeIndex);
+
+    /*! Convert a data string from a message to a map.
+     * \param messageData string of data to convert.  Formatted by param1key=param1value,param2key=param2value,etc.
+     * \returns Map containing key value pairs for each data parameter
+     */
+    std::map<std::string, std::string> dataToMap(const std::string &messageData) const;
+
+    /*! Disconnect from the specified node.
+     * \param nodeIndex Index of node to disconnect
+     */
+    void disconnectNode(int nodeIndex);
 
     std::map<std::string, std::function<void(POWNode &, POWMessage *)> > messageHandlers;
     std::map<int, cGate*> nodeIndexToGateMap;
