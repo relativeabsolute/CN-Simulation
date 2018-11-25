@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['forwardmessage',['forwardMessage',['../class_p2_p_random_topology_node.html#afcd9472e243360ed97bfe9313e963098',1,'P2PRandomTopologyNode']]]
+  ['addnodetogatemapping',['addNodeToGateMapping',['../class_p_o_w_node.html#ac5977523ffae3477704dff946bc110ce',1,'POWNode']]]
 ];

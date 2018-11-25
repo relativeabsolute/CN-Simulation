@@ -6,12 +6,17 @@
  */
 
 #include "POWNode.h"
+#include <memory>
 
-
-POWNode::POWNode() {
+POWNode::POWNode() : messageGen(nullptr) {
 }
 
 POWNode::~POWNode() {
+}
+
+void POWNode::addNodeToGateMapping(int nodeIndex, cGate *gate) {
+    EV << "Mapping node " << nodeIndex << " to gate " << gate << std::endl;
+    nodeIndexToGateMap[nodeIndex] = gate;
 }
 
 void POWNode::initConnections() {
@@ -39,10 +44,10 @@ void POWNode::initConnections() {
                 // TODO: may want to store the connections returned by connectTo here
                 srcGateOut->connectTo(destGateIn);
                 EV << "Outbound connection established" << std::endl;
+                addNodeToGateMapping(*it, srcGateOut);
                 destGateOut->connectTo(srcGateIn);
                 EV << "Inbound connection established" << std::endl;
-                nodeIndexToGateMap[*it] = destGateOut;
-                EV << "Mapping " << *it << " to gate " << destGateOut << std::endl;
+                toCheck->addNodeToGateMapping(getIndex(), destGateOut);
             }
         }
     }
@@ -50,13 +55,34 @@ void POWNode::initConnections() {
 }
 
 void POWNode::setupMessageHandlers() {
-    messageHandlers["getknownnodes"] = &POWNode::handleGetKnownNodesMessage;
+    messageHandlers[MessageGenerator::MESSAGE_NODE_VERSION_COMMAND] = &POWNode::handleNodeVersionMessage;
+    messageHandlers[MessageGenerator::MESSAGE_VERACK_COMMAND] = &POWNode::handleVerackMessage;
+}
+
+void POWNode::internalInitialize() {
+    // internal set up setup 0:
+    // read constant NED parameters
+    // this is mostly for convenience
+    readConstantParameters();
+
+    // internal set up step 1:
+    // connect message handlers
+    setupMessageHandlers();
+
+    // internal set up step 2:
+    // read peer "addresses" from this node's peers.dat
+    // NOTE: this does NOT set up connections to these peers
+}
+
+void POWNode::readConstantParameters() {
+    versionNumber = par("version").intValue();
+    minAcceptedVersionNumber = par("minAcceptedVersion").intValue();
+
+    messageGen = new MessageGenerator(versionNumber);
 }
 
 void POWNode::initialize() {
-    // set up step 0:
-    // set up message handlers
-    setupMessageHandlers();
+    internalInitialize();
 
     // set up step 1:
     // attempt to establish connections with the list of default nodes
@@ -64,19 +90,30 @@ void POWNode::initialize() {
     initConnections();
 
     // step 2:
-    // ask nodes for their list of known nodes (and indicate that we only know default nodes)
-    // we do this by scheduling a get node neighbors message
+    // send node version message on outbound connections
+    auto msg = messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_NODE_VERSION_COMMAND, "");
+    broadcastMessage(msg);
 
-    // TODO: iterate over nodes and send a new getknownnodes message
-    // need to handle mapping of nodes to gates (since connection to node n is not necessarily
-    // over gate index n
+    /*
     for (auto mapIterator = nodeIndexToGateMap.begin(); mapIterator != nodeIndexToGateMap.end(); ++mapIterator) {
         // it->first is the index of the destination node
         // it->second is the gate index to send over
-        POWMsg *newMsg = generateGetKnownNodesMessage();
+        auto newMsg = generateGetKnownNodesMessage();
         EV << newMsg << std::endl;
         send(newMsg, mapIterator->second);
     }
+    */
+}
+
+void POWNode::broadcastMessage(POWMessage *msg) {
+    EV << "Broadcasting " << msg << std::endl;
+    for (auto mapIterator = nodeIndexToGateMap.begin(); mapIterator != nodeIndexToGateMap.end(); ++mapIterator) {
+        // it->first is the index of the destination node
+        // it->second is the gate index to send over
+        cMessage *copy = msg->dup();
+        send(copy, mapIterator->second);
+    }
+    delete msg;
 }
 
 bool POWNode::isOnline() const {
@@ -85,14 +122,27 @@ bool POWNode::isOnline() const {
 
 void POWNode::handleMessage(cMessage *msg) {
     EV << "Received message.  Sending to appropriate handler." << std::endl;
-    POWMsg *powMsg = check_and_cast<POWMsg*>(msg);
-    std::string methodName = powMsg->getName();
-    messageHandlers[methodName](*this, powMsg);
+    POWMessage *powMessage = check_and_cast<POWMessage *>(msg);
+    std::string methodName = powMessage->getName();
+
+    auto handlerIt = messageHandlers.find(methodName);
+    if (handlerIt != messageHandlers.end()) {
+        handlerIt->second(*this, powMessage);
+    } else {
+        EV << "Node has no handler for message of type " << methodName << std::endl;
+    }
     delete msg;
 }
 
-POWMsg *POWNode::generateGetKnownNodesMessage() {
-    POWMsg *msg = new POWMsg("getknownnodes");
+/*
+POWMessage *POWNode::generateGetNodeStatusMessage() {
+    POWMessage *result = new POWMessage("getnodestatus");
+    result->setSrc(getIndex()); // this message does not need to carry any data yet
+    return result;
+}
+
+POWMessage *POWNode::generateGetKnownNodesMessage() {
+    POWMessage *msg = new POWMessage("getknownnodes");
     msg->setSrc(getIndex());
 
     // TODO: fix this to send over known nodes read from file
@@ -100,8 +150,35 @@ POWMsg *POWNode::generateGetKnownNodesMessage() {
 
     return msg;
 }
+*/
 
-void POWNode::handleGetKnownNodesMessage(POWMsg *msg) {
-    EV << "getknownnodes message received by " << getIndex() << " from " << msg->getSrc() << std::endl;
-    // TODO: add the sending node to our list of known nodes
+void POWNode::handleNodeVersionMessage(POWMessage *msg) {
+    logReceivedMessage(msg);
+    if (msg->getVersionNo() < minAcceptedVersionNumber) {
+        // disconnect from nodes that are too old
+        EV << "Node " << msg->getSource() << " using obsolete protocol version.  Minimum accepted version is " << minAcceptedVersionNumber << std::endl;
+        sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_REJECT_COMMAND, "reason=obsolete"), msg->getSource());
+    } else {
+        EV << "Node " << msg->getSource() << " is compatible.  Sending VERACK." << std::endl;
+        sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_VERACK_COMMAND, ""), msg->getSource());
+        // TODO: advertise our address if the connection is outbound
+    }
+}
+
+void POWNode::handleVerackMessage(POWMessage *msg) {
+    logReceivedMessage(msg);
+    // TODO: update node state for source node if this is an outbound connection
+}
+
+void POWNode::logReceivedMessage(POWMessage *msg) const {
+    EV << msg->getName() << " message received by " << getIndex() << " from " << msg->getSource() << std::endl;
+}
+
+void POWNode::sendToNode(POWMessage *msg, int nodeIndex) {
+    auto mapIt = nodeIndexToGateMap.find(nodeIndex);
+    if (mapIt != nodeIndexToGateMap.end()) {
+        send(msg, mapIt->second);
+    } else {
+        EV << "Node " << nodeIndex << " not found.  Message not sent." << std::endl;
+    }
 }

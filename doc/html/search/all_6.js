@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['setupmessagehandlers',['setupMessageHandlers',['../class_p_o_w_node.html#aba557d49eefb8cf9a349ace74f34cf59',1,'POWNode']]]
+  ['logreceivedmessage',['logReceivedMessage',['../class_p_o_w_node.html#a874642bca342a9b495be3b42b0183d7b',1,'POWNode']]]
 ];

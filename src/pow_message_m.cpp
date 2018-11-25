@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by nedtool 5.4 from pow_msg.msg.
+// Generated file, do not edit! Created by nedtool 5.4 from pow_message.msg.
 //
 
 // Disable warnings about unused variables, empty switch stmts, etc:
@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include <sstream>
-#include "pow_msg_m.h"
+#include "pow_message_m.h"
 
 namespace omnetpp {
 
@@ -177,23 +177,24 @@ inline std::ostream& operator<<(std::ostream& out, const std::vector<T,A>& vec)
     return out;
 }
 
-Register_Class(POWMsg)
+Register_Class(POWMessage)
 
-POWMsg::POWMsg(const char *name, short kind) : ::omnetpp::cMessage(name,kind)
+POWMessage::POWMessage(const char *name, short kind) : ::omnetpp::cMessage(name,kind)
 {
-    this->src = 0;
+    this->source = 0;
+    this->versionNo = 0;
 }
 
-POWMsg::POWMsg(const POWMsg& other) : ::omnetpp::cMessage(other)
+POWMessage::POWMessage(const POWMessage& other) : ::omnetpp::cMessage(other)
 {
     copy(other);
 }
 
-POWMsg::~POWMsg()
+POWMessage::~POWMessage()
 {
 }
 
-POWMsg& POWMsg::operator=(const POWMsg& other)
+POWMessage& POWMessage::operator=(const POWMessage& other)
 {
     if (this==&other) return *this;
     ::omnetpp::cMessage::operator=(other);
@@ -201,66 +202,79 @@ POWMsg& POWMsg::operator=(const POWMsg& other)
     return *this;
 }
 
-void POWMsg::copy(const POWMsg& other)
+void POWMessage::copy(const POWMessage& other)
 {
     this->data = other.data;
     this->command = other.command;
-    this->src = other.src;
+    this->source = other.source;
+    this->versionNo = other.versionNo;
 }
 
-void POWMsg::parsimPack(omnetpp::cCommBuffer *b) const
+void POWMessage::parsimPack(omnetpp::cCommBuffer *b) const
 {
     ::omnetpp::cMessage::parsimPack(b);
     doParsimPacking(b,this->data);
     doParsimPacking(b,this->command);
-    doParsimPacking(b,this->src);
+    doParsimPacking(b,this->source);
+    doParsimPacking(b,this->versionNo);
 }
 
-void POWMsg::parsimUnpack(omnetpp::cCommBuffer *b)
+void POWMessage::parsimUnpack(omnetpp::cCommBuffer *b)
 {
     ::omnetpp::cMessage::parsimUnpack(b);
     doParsimUnpacking(b,this->data);
     doParsimUnpacking(b,this->command);
-    doParsimUnpacking(b,this->src);
+    doParsimUnpacking(b,this->source);
+    doParsimUnpacking(b,this->versionNo);
 }
 
-const char * POWMsg::getData() const
+const char * POWMessage::getData() const
 {
     return this->data.c_str();
 }
 
-void POWMsg::setData(const char * data)
+void POWMessage::setData(const char * data)
 {
     this->data = data;
 }
 
-const char * POWMsg::getCommand() const
+const char * POWMessage::getCommand() const
 {
     return this->command.c_str();
 }
 
-void POWMsg::setCommand(const char * command)
+void POWMessage::setCommand(const char * command)
 {
     this->command = command;
 }
 
-int POWMsg::getSrc() const
+int POWMessage::getSource() const
 {
-    return this->src;
+    return this->source;
 }
 
-void POWMsg::setSrc(int src)
+void POWMessage::setSource(int source)
 {
-    this->src = src;
+    this->source = source;
 }
 
-class POWMsgDescriptor : public omnetpp::cClassDescriptor
+int POWMessage::getVersionNo() const
+{
+    return this->versionNo;
+}
+
+void POWMessage::setVersionNo(int versionNo)
+{
+    this->versionNo = versionNo;
+}
+
+class POWMessageDescriptor : public omnetpp::cClassDescriptor
 {
   private:
     mutable const char **propertynames;
   public:
-    POWMsgDescriptor();
-    virtual ~POWMsgDescriptor();
+    POWMessageDescriptor();
+    virtual ~POWMessageDescriptor();
 
     virtual bool doesSupport(omnetpp::cObject *obj) const override;
     virtual const char **getPropertyNames() const override;
@@ -282,24 +296,24 @@ class POWMsgDescriptor : public omnetpp::cClassDescriptor
     virtual void *getFieldStructValuePointer(void *object, int field, int i) const override;
 };
 
-Register_ClassDescriptor(POWMsgDescriptor)
+Register_ClassDescriptor(POWMessageDescriptor)
 
-POWMsgDescriptor::POWMsgDescriptor() : omnetpp::cClassDescriptor("POWMsg", "omnetpp::cMessage")
+POWMessageDescriptor::POWMessageDescriptor() : omnetpp::cClassDescriptor("POWMessage", "omnetpp::cMessage")
 {
     propertynames = nullptr;
 }
 
-POWMsgDescriptor::~POWMsgDescriptor()
+POWMessageDescriptor::~POWMessageDescriptor()
 {
     delete[] propertynames;
 }
 
-bool POWMsgDescriptor::doesSupport(omnetpp::cObject *obj) const
+bool POWMessageDescriptor::doesSupport(omnetpp::cObject *obj) const
 {
-    return dynamic_cast<POWMsg *>(obj)!=nullptr;
+    return dynamic_cast<POWMessage *>(obj)!=nullptr;
 }
 
-const char **POWMsgDescriptor::getPropertyNames() const
+const char **POWMessageDescriptor::getPropertyNames() const
 {
     if (!propertynames) {
         static const char *names[] = {  nullptr };
@@ -310,19 +324,19 @@ const char **POWMsgDescriptor::getPropertyNames() const
     return propertynames;
 }
 
-const char *POWMsgDescriptor::getProperty(const char *propertyname) const
+const char *POWMessageDescriptor::getProperty(const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     return basedesc ? basedesc->getProperty(propertyname) : nullptr;
 }
 
-int POWMsgDescriptor::getFieldCount() const
+int POWMessageDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 3+basedesc->getFieldCount() : 3;
+    return basedesc ? 4+basedesc->getFieldCount() : 4;
 }
 
-unsigned int POWMsgDescriptor::getFieldTypeFlags(int field) const
+unsigned int POWMessageDescriptor::getFieldTypeFlags(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -334,11 +348,12 @@ unsigned int POWMsgDescriptor::getFieldTypeFlags(int field) const
         FD_ISEDITABLE,
         FD_ISEDITABLE,
         FD_ISEDITABLE,
+        FD_ISEDITABLE,
     };
-    return (field>=0 && field<3) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
 }
 
-const char *POWMsgDescriptor::getFieldName(int field) const
+const char *POWMessageDescriptor::getFieldName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -349,22 +364,24 @@ const char *POWMsgDescriptor::getFieldName(int field) const
     static const char *fieldNames[] = {
         "data",
         "command",
-        "src",
+        "source",
+        "versionNo",
     };
-    return (field>=0 && field<3) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<4) ? fieldNames[field] : nullptr;
 }
 
-int POWMsgDescriptor::findField(const char *fieldName) const
+int POWMessageDescriptor::findField(const char *fieldName) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount() : 0;
     if (fieldName[0]=='d' && strcmp(fieldName, "data")==0) return base+0;
     if (fieldName[0]=='c' && strcmp(fieldName, "command")==0) return base+1;
-    if (fieldName[0]=='s' && strcmp(fieldName, "src")==0) return base+2;
+    if (fieldName[0]=='s' && strcmp(fieldName, "source")==0) return base+2;
+    if (fieldName[0]=='v' && strcmp(fieldName, "versionNo")==0) return base+3;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
-const char *POWMsgDescriptor::getFieldTypeString(int field) const
+const char *POWMessageDescriptor::getFieldTypeString(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -376,11 +393,12 @@ const char *POWMsgDescriptor::getFieldTypeString(int field) const
         "string",
         "string",
         "int",
+        "int",
     };
-    return (field>=0 && field<3) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<4) ? fieldTypeStrings[field] : nullptr;
 }
 
-const char **POWMsgDescriptor::getFieldPropertyNames(int field) const
+const char **POWMessageDescriptor::getFieldPropertyNames(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -393,7 +411,7 @@ const char **POWMsgDescriptor::getFieldPropertyNames(int field) const
     }
 }
 
-const char *POWMsgDescriptor::getFieldProperty(int field, const char *propertyname) const
+const char *POWMessageDescriptor::getFieldProperty(int field, const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -406,7 +424,7 @@ const char *POWMsgDescriptor::getFieldProperty(int field, const char *propertyna
     }
 }
 
-int POWMsgDescriptor::getFieldArraySize(void *object, int field) const
+int POWMessageDescriptor::getFieldArraySize(void *object, int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -414,13 +432,13 @@ int POWMsgDescriptor::getFieldArraySize(void *object, int field) const
             return basedesc->getFieldArraySize(object, field);
         field -= basedesc->getFieldCount();
     }
-    POWMsg *pp = (POWMsg *)object; (void)pp;
+    POWMessage *pp = (POWMessage *)object; (void)pp;
     switch (field) {
         default: return 0;
     }
 }
 
-const char *POWMsgDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
+const char *POWMessageDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -428,13 +446,13 @@ const char *POWMsgDescriptor::getFieldDynamicTypeString(void *object, int field,
             return basedesc->getFieldDynamicTypeString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    POWMsg *pp = (POWMsg *)object; (void)pp;
+    POWMessage *pp = (POWMessage *)object; (void)pp;
     switch (field) {
         default: return nullptr;
     }
 }
 
-std::string POWMsgDescriptor::getFieldValueAsString(void *object, int field, int i) const
+std::string POWMessageDescriptor::getFieldValueAsString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -442,16 +460,17 @@ std::string POWMsgDescriptor::getFieldValueAsString(void *object, int field, int
             return basedesc->getFieldValueAsString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    POWMsg *pp = (POWMsg *)object; (void)pp;
+    POWMessage *pp = (POWMessage *)object; (void)pp;
     switch (field) {
         case 0: return oppstring2string(pp->getData());
         case 1: return oppstring2string(pp->getCommand());
-        case 2: return long2string(pp->getSrc());
+        case 2: return long2string(pp->getSource());
+        case 3: return long2string(pp->getVersionNo());
         default: return "";
     }
 }
 
-bool POWMsgDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
+bool POWMessageDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -459,16 +478,17 @@ bool POWMsgDescriptor::setFieldValueAsString(void *object, int field, int i, con
             return basedesc->setFieldValueAsString(object,field,i,value);
         field -= basedesc->getFieldCount();
     }
-    POWMsg *pp = (POWMsg *)object; (void)pp;
+    POWMessage *pp = (POWMessage *)object; (void)pp;
     switch (field) {
         case 0: pp->setData((value)); return true;
         case 1: pp->setCommand((value)); return true;
-        case 2: pp->setSrc(string2long(value)); return true;
+        case 2: pp->setSource(string2long(value)); return true;
+        case 3: pp->setVersionNo(string2long(value)); return true;
         default: return false;
     }
 }
 
-const char *POWMsgDescriptor::getFieldStructName(int field) const
+const char *POWMessageDescriptor::getFieldStructName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -481,7 +501,7 @@ const char *POWMsgDescriptor::getFieldStructName(int field) const
     };
 }
 
-void *POWMsgDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
+void *POWMessageDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -489,7 +509,7 @@ void *POWMsgDescriptor::getFieldStructValuePointer(void *object, int field, int 
             return basedesc->getFieldStructValuePointer(object, field, i);
         field -= basedesc->getFieldCount();
     }
-    POWMsg *pp = (POWMsg *)object; (void)pp;
+    POWMessage *pp = (POWMessage *)object; (void)pp;
     switch (field) {
         default: return nullptr;
     }

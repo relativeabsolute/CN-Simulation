@@ -19,6 +19,8 @@ simple POWNode extends P2PNode {
     parameters:
         string defaultNodeList; // this will be assigned by the network
         bool online = default(true);
+        int version = default(1);
+        int minAcceptedVersion = default(1);
     @class(POWNode);
 }
 
