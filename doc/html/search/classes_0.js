@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['messagegenerator',['MessageGenerator',['../class_message_generator.html',1,'']]]
+  ['addrmanager',['AddrManager',['../class_addr_manager.html',1,'']]]
 ];

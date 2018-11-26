@@ -34,4 +34,5 @@
 # Omnet Specific stuff
 run
 p2p_sim
+p2p_sim_dbg
 out

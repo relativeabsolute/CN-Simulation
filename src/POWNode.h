@@ -13,7 +13,11 @@
 #include "P2PNode.h"
 #include "pow_message_m.h"
 #include "MessageGenerator.h"
+#include "pow_node_data.h"
+#include "addr_manager.h"
 #include <functional>
+#include <memory>
+#include <queue>
 
 using namespace omnetpp;
 
@@ -33,7 +37,8 @@ protected:
      */
     virtual void initialize() override;
 
-    /*! Process an incoming message.
+    /*! Process an incoming message.  Message gets added to incomingMessages queue, which gets processed at a user-specified
+     * time interval.
      * \param msg Message to handle.  Will be cast to a POWMessage.
      */
     virtual void handleMessage(cMessage *msg) override;
@@ -69,6 +74,11 @@ private:
      */
     void setupMessageHandlers();
 
+    /*! Initiate the appropriate "thread" for the given name.
+     * \param methodName Name of thread to invoke.
+     */
+    void handleSelfMessage(const std::string &methodName);
+
     /*! Send given message to all currently known peers.  Copies the message for each one.
      * \param broadcast Message to broadcast.
      */
@@ -86,9 +96,15 @@ private:
     void handleVerackMessage(POWMessage *msg);
 
     /*! Handle an incoming reject message.  Disconnect from the sender if the data indicates so.
-     * \param msg Message to handle.
+     * \param msg Message to handle.  Contains data that indicates the ban's reason and whether it should result in a disconnect.
      */
     void handleRejectMessage(POWMessage *msg);
+
+    /*! Handle an incoming get addr message.  Push our known addresses into the corresponding node's
+     * addresses queue.
+     * \param msg Message to handle.  Does not contain any data.
+     */
+    void handleGetAddrMessage(POWMessage *msg);
 
     /*! Print information upon receiving a message.
      * \param msg Message to log.
@@ -107,16 +123,52 @@ private:
      */
     std::map<std::string, std::string> dataToMap(const std::string &messageData) const;
 
+    /*! "Thread" that checks peers' incoming and outgoing message queues.
+     * Calls processIncomingMessages and sendOutgoingMessages for each peer.
+     */
+    void messageHandler();
+
+    /*! Process a message from a queue.
+     * Calls the message's appropriate handler, if one exists.
+     */
+    void processMessage(POWMessage *msg);
+
+    /*! Process the given peer's incoming messages.
+     * \param peerIndex Index of peer to process messages of.
+     * \returns True if there is still more processing to be done for the peer, false otherwise.
+     */
+    bool processIncomingMessages(int peerIndex);
+
+    void sendOutgoingMessages(int peerIndex);
+
     /*! Disconnect from the specified node.
      * \param nodeIndex Index of node to disconnect
      */
     void disconnectNode(int nodeIndex);
 
+    /*! Part of node loop run post initialization.
+     * Sends any necessary data to peers.
+     */
+    void sendMessages();
+
+    /*! Checks if the given message is being received at an appropriate time.
+     * \param msg Message to check.
+     * \returns True if the message is in scope, false otherwise.
+     */
+    bool checkMessageInScope(POWMessage *msg);
+
+    void connectTo(int otherIndex, POWNode *other);
+
     std::map<std::string, std::function<void(POWNode &, POWMessage *)> > messageHandlers;
+    std::map<std::string, std::function<void(POWNode &)> > selfMessageHandlers;
     std::map<int, cGate*> nodeIndexToGateMap;
     int versionNumber;
     int minAcceptedVersionNumber;
-    MessageGenerator *messageGen;
+    std::unique_ptr<MessageGenerator> messageGen;
+    // maintain data known about each peer
+    std::map<int, std::unique_ptr<POWNodeData> > peers;
+    std::unique_ptr<AddrManager> addrMan;
+    simtime_t threadScheduleInterval;
 };
 
 Define_Module(POWNode)

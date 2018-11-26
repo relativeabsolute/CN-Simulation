@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.14"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>CN-Simulation: File List</title>
+<title>CN-Simulation: AddrManager Class Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -67,7 +67,7 @@ $(function() {
 </div>
 <script type="text/javascript">
 /* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
-$(document).ready(function(){initNavTree('files.html','');});
+$(document).ready(function(){initNavTree('class_addr_manager.html','');});
 /* @license-end */
 </script>
 <div id="doc-content">
@@ -86,28 +86,53 @@ $(document).ready(function(){initNavTree('files.html','');});
 </div>
 
 <div class="header">
+  <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pri-attribs">Private Attributes</a> &#124;
+<a href="class_addr_manager-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">File List</div>  </div>
+<div class="title">AddrManager Class Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock">Here is a list of all documented files with brief descriptions:</div><div class="directory">
-<div class="levels">[detail level <span onclick="javascript:toggleLevel(1);">1</span><span onclick="javascript:toggleLevel(2);">2</span>]</div><table class="directory">
-<tr id="row_0_" class="even"><td class="entry"><span style="width:0px;display:inline-block;">&#160;</span><span id="arr_0_" class="arrow" onclick="toggleFolder('0_')">&#9660;</span><span id="img_0_" class="iconfopen" onclick="toggleFolder('0_')">&#160;</span><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html" target="_self">src</a></td><td class="desc"></td></tr>
-<tr id="row_0_0_"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><a href="addr__manager_8h_source.html"><span class="icondoc"></span></a><b>addr_manager.h</b></td><td class="desc"></td></tr>
-<tr id="row_0_1_" class="even"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><a href="_message_generator_8h_source.html"><span class="icondoc"></span></a><b>MessageGenerator.h</b></td><td class="desc"></td></tr>
-<tr id="row_0_2_"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><a href="p2p__msg__m_8h_source.html"><span class="icondoc"></span></a><b>p2p_msg_m.h</b></td><td class="desc"></td></tr>
-<tr id="row_0_3_" class="even"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><a href="_p2_p_node_8h_source.html"><span class="icondoc"></span></a><b>P2PNode.h</b></td><td class="desc"></td></tr>
-<tr id="row_0_4_"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><a href="_p2_p_random_topology_node_8h_source.html"><span class="icondoc"></span></a><b>P2PRandomTopologyNode.h</b></td><td class="desc"></td></tr>
-<tr id="row_0_5_" class="even"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><a href="pow__message__m_8h_source.html"><span class="icondoc"></span></a><b>pow_message_m.h</b></td><td class="desc"></td></tr>
-<tr id="row_0_6_"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><a href="pow__node__data_8h_source.html"><span class="icondoc"></span></a><b>pow_node_data.h</b></td><td class="desc"></td></tr>
-<tr id="row_0_7_" class="even"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><a href="_p_o_w_node_8h_source.html"><span class="icondoc"></span></a><b>POWNode.h</b></td><td class="desc"></td></tr>
+
+<p><code>#include &lt;<a class="el" href="addr__manager_8h_source.html">addr_manager.h</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:a5aff67b823f89ccbfd02ab93d9e62849"><td class="memItemLeft" align="right" valign="top"><a id="a5aff67b823f89ccbfd02ab93d9e62849"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>AddrManager</b> (double fraction)</td></tr>
+<tr class="separator:a5aff67b823f89ccbfd02ab93d9e62849"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0818fcc067511624114210bfedf8ce49"><td class="memItemLeft" align="right" valign="top"><a id="a0818fcc067511624114210bfedf8ce49"></a>
+std::vector&lt; int &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>getRandomAddresses</b> ()</td></tr>
+<tr class="separator:a0818fcc067511624114210bfedf8ce49"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0062e1a1597e398b64b67bac0b4a6879"><td class="memItemLeft" align="right" valign="top"><a id="a0062e1a1597e398b64b67bac0b4a6879"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>addAddress</b> (int newAddress)</td></tr>
+<tr class="separator:a0062e1a1597e398b64b67bac0b4a6879"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-attribs"></a>
+Private Attributes</h2></td></tr>
+<tr class="memitem:a6cb070a3ff13f01c7569f20afb789edf"><td class="memItemLeft" align="right" valign="top"><a id="a6cb070a3ff13f01c7569f20afb789edf"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><b>addressFraction</b></td></tr>
+<tr class="separator:a6cb070a3ff13f01c7569f20afb789edf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3e4ddeff0ce130c26805f1f48cf3cb22"><td class="memItemLeft" align="right" valign="top"><a id="a3e4ddeff0ce130c26805f1f48cf3cb22"></a>
+std::vector&lt; int &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>addresses</b></td></tr>
+<tr class="separator:a3e4ddeff0ce130c26805f1f48cf3cb22"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ea7c3337f23db74f85ed8cc9e38cc39"><td class="memItemLeft" align="right" valign="top"><a id="a7ea7c3337f23db74f85ed8cc9e38cc39"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><b>numRandomAddresses</b></td></tr>
+<tr class="separator:a7ea7c3337f23db74f85ed8cc9e38cc39"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-</div><!-- directory -->
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>This class is mostly defined for developer convenience, since nodes are represented by integer indices instead of full address info structures. </p>
+</div><hr/>The documentation for this class was generated from the following files:<ul>
+<li>src/<a class="el" href="addr__manager_8h_source.html">addr_manager.h</a></li>
+<li>src/addr_manager.cpp</li>
+</ul>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
+    <li class="navelem"><a class="el" href="class_addr_manager.html">AddrManager</a></li>
     <li class="footer">Generated by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.14 </li>

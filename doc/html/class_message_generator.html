@@ -89,6 +89,7 @@ $(document).ready(function(){initNavTree('class_message_generator.html','');});
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-attribs">Static Public Attributes</a> &#124;
+<a href="#pri-methods">Private Member Functions</a> &#124;
 <a href="#pri-attribs">Private Attributes</a> &#124;
 <a href="class_message_generator-members.html">List of all members</a>  </div>
   <div class="headertitle">
@@ -105,9 +106,15 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ab060e684ac7f4550ff5c8f0ece22aa1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8212a8d243c84cfa426685aa1b9bc125"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_p_o_w_message.html">POWMessage</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_message_generator.html#a8212a8d243c84cfa426685aa1b9bc125">generateMessage</a> (int sourceIndex, std::string command, std::string data)</td></tr>
 <tr class="separator:a8212a8d243c84cfa426685aa1b9bc125"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a74ca9821df2a121f86c0a4a4a02a67de"><td class="memItemLeft" align="right" valign="top"><a id="a74ca9821df2a121f86c0a4a4a02a67de"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>messageInScope</b> (const std::string &amp;msgName, MessageScope scope) const</td></tr>
+<tr class="separator:a74ca9821df2a121f86c0a4a4a02a67de"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
+<tr class="memitem:a2f91be321da13088e5021b59e6485d7a"><td class="memItemLeft" align="right" valign="top"><a id="a2f91be321da13088e5021b59e6485d7a"></a>
+static constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>MESSAGE_CHECK_QUEUES</b> = &quot;checkqueues&quot;</td></tr>
+<tr class="separator:a2f91be321da13088e5021b59e6485d7a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a56b9298843dedfca7c1883322e5da9dd"><td class="memItemLeft" align="right" valign="top"><a id="a56b9298843dedfca7c1883322e5da9dd"></a>
 static constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>MESSAGE_NODE_VERSION_COMMAND</b> = &quot;nodeversion&quot;</td></tr>
 <tr class="separator:a56b9298843dedfca7c1883322e5da9dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -117,12 +124,24 @@ static constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"
 <tr class="memitem:a351f68da5bd1f86dc4f991417125cd88"><td class="memItemLeft" align="right" valign="top"><a id="a351f68da5bd1f86dc4f991417125cd88"></a>
 static constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>MESSAGE_VERACK_COMMAND</b> = &quot;verack&quot;</td></tr>
 <tr class="separator:a351f68da5bd1f86dc4f991417125cd88"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4742539cb6bf42d2e91bc53c40bad132"><td class="memItemLeft" align="right" valign="top"><a id="a4742539cb6bf42d2e91bc53c40bad132"></a>
+static constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>MESSAGE_GETADDR_COMMAND</b> = &quot;getaddr&quot;</td></tr>
+<tr class="separator:a4742539cb6bf42d2e91bc53c40bad132"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-methods"></a>
+Private Member Functions</h2></td></tr>
+<tr class="memitem:a7e353beb671c747a757e28d7163fc65c"><td class="memItemLeft" align="right" valign="top"><a id="a7e353beb671c747a757e28d7163fc65c"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>initMessageScopes</b> ()</td></tr>
+<tr class="separator:a7e353beb671c747a757e28d7163fc65c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-attribs"></a>
 Private Attributes</h2></td></tr>
 <tr class="memitem:a1fd0ba0190a03b0ee84ccb15d7b3cecb"><td class="memItemLeft" align="right" valign="top"><a id="a1fd0ba0190a03b0ee84ccb15d7b3cecb"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>versionNo</b></td></tr>
 <tr class="separator:a1fd0ba0190a03b0ee84ccb15d7b3cecb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad06b98ec82d1a6e1f9a089032dd09ddf"><td class="memItemLeft" align="right" valign="top"><a id="ad06b98ec82d1a6e1f9a089032dd09ddf"></a>
+std::map&lt; std::string, std::bitset&lt; NumMessageScopes &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>messageScopes</b></td></tr>
+<tr class="separator:ad06b98ec82d1a6e1f9a089032dd09ddf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Utility class that makes generating messages easier. </p>

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['readconstantparameters',['readConstantParameters',['../class_p_o_w_node.html#acc9c828444cd6a0a3dc518348813c745',1,'POWNode']]]
+  ['logreceivedmessage',['logReceivedMessage',['../class_p_o_w_node.html#a874642bca342a9b495be3b42b0183d7b',1,'POWNode']]]
 ];

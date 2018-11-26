@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['command',['command',['../class_p_o_w_msg.html#a62774b63a19464eadb32d44806074212',1,'POWMsg']]]
+  ['addresses',['addresses',['../struct_p_o_w_node_data.html#aba1a218227f9cc158692b47828fc96c8',1,'POWNodeData']]]
 ];

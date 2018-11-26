@@ -17,19 +17,17 @@ package p2p_sim.simulations;
 
 simple POWNode extends P2PNode {
     parameters:
-        string defaultNodeList; // this will be assigned by the network
+        string defaultNodeList;
         bool online = default(true);
         int version = default(1);
         int minAcceptedVersion = default(1);
+        int threadScheduleInterval = default(10); // interval at which to check data queues, etc.
     @class(POWNode);
 }
 
 network POWNetwork {
     parameters:
         int count;
-        // space-separated list of node indices to connect to
-        string defaultNodeList;
-        node[*].defaultNodeList = defaultNodeList;
     submodules:
         node[count]: POWNode;
 }
