@@ -74,10 +74,10 @@ private:
      */
     void setupMessageHandlers();
 
-    /*! Initiate the appropriate "thread" for the given name.
-     * \param methodName Name of thread to invoke.
+    /*! Initiate the appropriate "thread" for the given self message.
+     * \param msg Message indicating what thread to start.
      */
-    void handleSelfMessage(const std::string &methodName);
+    void handleSelfMessage(POWMessage *msg);
 
     /*! Send given message to all currently known peers.  Copies the message for each one.
      * \param broadcast Message to broadcast.
@@ -125,8 +125,19 @@ private:
 
     /*! "Thread" that checks peers' incoming and outgoing message queues.
      * Calls processIncomingMessages and sendOutgoingMessages for each peer.
+     * \param msg Message that initiated the check.  Not used (only here to work with the handler map)
      */
-    void messageHandler();
+    void messageHandler(POWMessage *msg);
+
+    /*! "Thread" that advertises address to the peer specified by the message.
+     * \param msg Message carrying index of peer to advertise addresses to.
+     */
+    void advertiseAddresses(POWMessage *msg);
+
+    /*! Send queued up addresses to the given peer.
+     *
+     */
+    void handleSendAddresses(int peerIndex);
 
     /*! Process a message from a queue.
      * Calls the message's appropriate handler, if one exists.
@@ -159,18 +170,24 @@ private:
 
     void connectTo(int otherIndex, POWNode *other);
 
+    void scheduleAddrAd(int peerIndex);
+
     std::map<std::string, std::function<void(POWNode &, POWMessage *)> > messageHandlers;
-    std::map<std::string, std::function<void(POWNode &)> > selfMessageHandlers;
+    // these are kept separate because self messages are processed immediately
+    std::map<std::string, std::function<void(POWNode &, POWMessage *)> > selfMessageHandlers;
+
     std::map<int, cGate*> nodeIndexToGateMap;
     int versionNumber;
     int minAcceptedVersionNumber;
     int maxMessageProcess;
+    int addrSendInterval;
+    int maxAddrAd;
     std::unique_ptr<MessageGenerator> messageGen;
     // maintain data known about each peer
     std::map<int, std::unique_ptr<POWNodeData> > peers;
     std::unique_ptr<AddrManager> addrMan;
     std::queue<int> peersProcess; // make sure nodes are processed fairly
-    simtime_t threadScheduleInterval;
+    int threadScheduleInterval;
     int currentMessagesProcessed;  // counter for number of messages that have been processed in one loop
 };
 

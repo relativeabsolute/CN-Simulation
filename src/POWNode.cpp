@@ -6,6 +6,7 @@
  */
 
 #include "POWNode.h"
+#include <numeric>
 
 POWNode::POWNode() : messageGen(nullptr) {
 }
@@ -59,14 +60,19 @@ void POWNode::connectTo(int otherIndex, POWNode *other) {
     destGateOut->connectTo(srcGateIn);
     EV << "Inbound connection established" << std::endl;
     other->addNodeToGateMapping(getIndex(), destGateOut);
+
+    // schedule address advertisement to the peer
+    scheduleAddrAd(otherIndex);
 }
 
 void POWNode::setupMessageHandlers() {
     selfMessageHandlers[MessageGenerator::MESSAGE_CHECK_QUEUES] = &POWNode::messageHandler;
+    selfMessageHandlers[MessageGenerator::MESSAGE_ADVERTISE_ADDRESSES] = &POWNode::advertiseAddresses;
 
     messageHandlers[MessageGenerator::MESSAGE_NODE_VERSION_COMMAND] = &POWNode::handleNodeVersionMessage;
     messageHandlers[MessageGenerator::MESSAGE_VERACK_COMMAND] = &POWNode::handleVerackMessage;
     messageHandlers[MessageGenerator::MESSAGE_REJECT_COMMAND] = &POWNode::handleRejectMessage;
+    messageHandlers[MessageGenerator::MESSAGE_GETADDR_COMMAND] = &POWNode::handleGetAddrMessage;
 }
 
 void POWNode::internalInitialize() {
@@ -90,6 +96,7 @@ void POWNode::readConstantParameters() {
     minAcceptedVersionNumber = par("minAcceptedVersion").intValue();
     threadScheduleInterval = par("threadScheduleInterval").intValue();
     maxMessageProcess = par("maxMessageProcess").intValue();
+    maxAddrAd = par("maxAddrAd").intValue();
 
     messageGen = std::make_unique<MessageGenerator>(versionNumber);
 }
@@ -152,7 +159,27 @@ bool POWNode::checkMessageInScope(POWMessage *msg) {
 }
 
 void POWNode::sendOutgoingMessages(int peerIndex) {
-
+    auto peer = peers.find(peerIndex);
+    if (peer != peers.end()) {
+        if (!peer->second->flags.test(SuccessfullyConnected) || peer->second->flags.test(Disconnect)) {
+            EV << "No connection with node " << peerIndex << ".  Not sending outgoing data." << std::endl;
+            return;
+        }
+        // Note: we don't handle address advertisement here since that's done on a poisson distributed
+        // time interval, so it can just be a scheduled message
+        // TODO: block sync
+        // TODO: send wallet transactions not in a block yet
+        // TODO: do block announcements via headers
+        // TODO: inventory
+        // TODO: detect if peer is stalling
+        // TODO: check number of blocks in flight
+        // TODO: check for headers sync timeouts
+        // TODO: check outbound peers have reasnable chains
+        // TODO: getdata blocks
+        // TODO: getdata non blocks
+    } else {
+        EV << "Attempted to send data to nonexistant node " << peerIndex << std::endl;
+    }
 }
 
 void POWNode::processMessage(POWMessage *msg) {
@@ -179,14 +206,17 @@ bool POWNode::processIncomingMessages(int peerIndex) {
     bool moreWork = false;
     if (peer != peers.end()) {
         if (peer->second->flags.test(Disconnect)) {
+            EV << "Node " << peerIndex << " scheduled for disconnect.  Not processing incoming message." << std::endl;
             return false;
         }
         // TODO: BTC checks the received data buffer again here, and returns true if it is not empty
         if (peer->second->flags.test(PauseSend)) {
+            EV << "Send buffer for node " << peerIndex << " is full.  Not processing incoming message." << std::endl;
             return false;
         }
 
         if (peer->second->incomingMessages.empty()) {
+            EV << "No messages to process for node " << peerIndex << std::endl;
             return false;
         }
         POWMessage *msg = peer->second->incomingMessages.front();
@@ -206,7 +236,52 @@ bool POWNode::processIncomingMessages(int peerIndex) {
     return moreWork;
 }
 
-void POWNode::messageHandler() {
+void POWNode::scheduleAddrAd(int peerIndex) {
+    std::string data = "peerIndex=" + std::to_string(peerIndex);
+    // same interval as threadSchedule since BTC does this task as part of that thread
+    scheduleAt(simTime() + poisson((double)(int64_t)threadScheduleInterval), messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_ADVERTISE_ADDRESSES, data));
+}
+
+void POWNode::advertiseAddresses(POWMessage *msg) {
+    std::string data = msg->getData();
+    // data is form peerIndex=<index>
+    // so just get the substring after the equal sign
+    int adTarget = std::stoi(data.substr(data.find('=') + 1));
+    if (!peers[adTarget]->flags.test(SuccessfullyConnected) || peers[adTarget]->flags.test(Disconnect)) {
+        EV << "Peer " << adTarget << " disconnected.  Not advertising addresses." << std::endl;
+    } else {
+        scheduleAddrAd(adTarget);
+        auto peer = peers.find(adTarget);
+        if (peer != peers.end()) {
+            std::vector<int> addresses(peer->second->addressesToBeSent.size());
+            for (int address : peer->second->addressesToBeSent) {
+                if (peer->second->knownAddresses.find(address) != peer->second->knownAddresses.end()) {
+                    peer->second->knownAddresses.insert(address);
+                    addresses.push_back(address);
+                    if (addresses.size() >= maxAddrAd) {
+                        std::string data = "addresses=";
+                        data += std::accumulate(addresses.begin() + 1, addresses.end(), std::to_string(addresses[0]),
+                                [](const std::string &a, int b) { return a + "," + std::to_string(b); });
+                        sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_ADDR_COMMAND, data), adTarget);
+                        addresses.clear();
+                    }
+                }
+            }
+            peer->second->addressesToBeSent.clear();
+            if (!addresses.empty()) {
+                std::string data = "addresses=";
+                data += std::accumulate(addresses.begin() + 1, addresses.end(), std::to_string(addresses[0]),
+                        [](const std::string &a, int b) { return a + "," + std::to_string(b); });
+                sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_ADDR_COMMAND, data), adTarget);
+            }
+        } else {
+            EV << "Cannot advertise to nonexistant peer " << adTarget << std::endl;
+        }
+    }
+
+}
+
+void POWNode::messageHandler(POWMessage *msg) {
     // only process a certain number of messages at once
     // need to ensure that each node gets a fair chance at being processed
     EV << "Handling messages in node " << getIndex() << std::endl;
@@ -224,10 +299,13 @@ void POWNode::messageHandler() {
     scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_CHECK_QUEUES, ""));
 }
 
-void POWNode::handleSelfMessage(const std::string &methodName) {
+void POWNode::handleSelfMessage(POWMessage *msg) {
+    std::string methodName = msg->getName();
     auto handlerIt = selfMessageHandlers.find(methodName);
     if (handlerIt != selfMessageHandlers.end()) {
-        handlerIt->second(*this);
+        handlerIt->second(*this, msg);
+    } else {
+        EV << "No handler for self message " << msg << std::endl;
     }
 }
 
@@ -236,7 +314,7 @@ void POWNode::handleMessage(cMessage *msg) {
     logReceivedMessage(powMessage);
     if (powMessage->isSelfMessage()) {
         EV << "Received scheduler message.  Sending to appropriate handler." << std::endl;
-        handleSelfMessage(powMessage->getName());
+        handleSelfMessage(powMessage);
         delete msg;
     } else {
         int source = powMessage->getSource();
@@ -263,7 +341,7 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
         sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_VERACK_COMMAND, ""), sourceNode);
         // TODO: advertise our address if the connection is outbound
         // TODO: BTC does a check for listen flag and not isInitialBlockDownload
-        peers[sourceNode]->addresses.push_back(meNode);
+        peers[sourceNode]->addressesToBeSent.insert(meNode);
 
         // TODO: BTC defines an ideal number of addresses
         sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_GETADDR_COMMAND, ""), sourceNode);
@@ -296,8 +374,9 @@ void POWNode::handleGetAddrMessage(POWMessage *msg) {
     }
     peers[messageSource]->flags.set(HasSentAddr);
     auto pushAddresses = addrMan->getRandomAddresses();
+    EV << "Adding " << pushAddresses.size() << " addresses to be sent to node " << messageSource << std::endl;
     for (auto it = pushAddresses.begin(); it != pushAddresses.end(); ++it) {
-        peers[messageSource]->addresses.push_back(*it);
+        peers[messageSource]->addressesToBeSent.insert(*it);
     }
 }
 

@@ -9,6 +9,7 @@
 #define POW_NODE_DATA_H_
 
 #include <map>
+#include <set>
 #include <deque>
 #include <bitset>
 #include "pow_message_m.h"
@@ -28,13 +29,14 @@ enum POWNodeFlags {
  */
 struct POWNodeData {
     /*! Contains addresses of peers to be advertised to the peer.
-     * We only use queue behavior, but having a deque allows convenience when inserting addresses.
      */
-    std::deque<int> addresses;
+    std::set<int> addressesToBeSent;
 
     std::deque<POWMessage *> incomingMessages;
 
     std::bitset<NumFlags> flags;
+
+    std::set<int> knownAddresses;
 
     int version;
 };

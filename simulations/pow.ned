@@ -21,8 +21,9 @@ simple POWNode extends P2PNode {
         bool online = default(true);
         int version = default(1);
         int minAcceptedVersion = default(1);
-        int threadScheduleInterval = default(10); // interval at which to check data queues, etc.
+        int threadScheduleInterval = default(30); // interval at which to check data queues, etc.
         int maxMessageProcess = default(2);  // number of messages to process before passing the execution context
+        int maxAddrAd = default(5);  // maximum number of addresses to send in an advertisement
     @class(POWNode);
 }
 

@@ -26,10 +26,12 @@ enum MessageScope {
 class MessageGenerator {
 public:
     static constexpr const char *MESSAGE_CHECK_QUEUES = "checkqueues"; // self message to simulate BTC's threading.  does not need a scope
+    static constexpr const char *MESSAGE_ADVERTISE_ADDRESSES = "advertiseaddrs";
     static constexpr const char *MESSAGE_NODE_VERSION_COMMAND = "nodeversion";
     static constexpr const char *MESSAGE_REJECT_COMMAND = "reject";
     static constexpr const char *MESSAGE_VERACK_COMMAND = "verack";
     static constexpr const char *MESSAGE_GETADDR_COMMAND = "getaddr";
+    static constexpr const char *MESSAGE_ADDR_COMMAND = "addr";
 
     explicit MessageGenerator(int versionNo) : versionNo(versionNo) {
         initMessageScopes();
