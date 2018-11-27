@@ -22,6 +22,7 @@ simple POWNode extends P2PNode {
         int version = default(1);
         int minAcceptedVersion = default(1);
         int threadScheduleInterval = default(10); // interval at which to check data queues, etc.
+        int maxMessageProcess = default(2);  // number of messages to process before passing the execution context
     @class(POWNode);
 }
 

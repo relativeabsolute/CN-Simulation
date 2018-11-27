@@ -182,6 +182,9 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>versionNumber</b></td>
 <tr class="memitem:adc1c67e9a8283a47aa113f8ee52b82d2"><td class="memItemLeft" align="right" valign="top"><a id="adc1c67e9a8283a47aa113f8ee52b82d2"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>minAcceptedVersionNumber</b></td></tr>
 <tr class="separator:adc1c67e9a8283a47aa113f8ee52b82d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acfddbdbe0ecf4ef685737fa4ce509ac5"><td class="memItemLeft" align="right" valign="top"><a id="acfddbdbe0ecf4ef685737fa4ce509ac5"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>maxMessageProcess</b></td></tr>
+<tr class="separator:acfddbdbe0ecf4ef685737fa4ce509ac5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a842daa79e6912fa649a603d60a2ffaad"><td class="memItemLeft" align="right" valign="top"><a id="a842daa79e6912fa649a603d60a2ffaad"></a>
 std::unique_ptr&lt; <a class="el" href="class_message_generator.html">MessageGenerator</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>messageGen</b></td></tr>
 <tr class="separator:a842daa79e6912fa649a603d60a2ffaad"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -191,9 +194,15 @@ std::map&lt; int, std::unique_ptr&lt; <a class="el" href="struct_p_o_w_node_data
 <tr class="memitem:a397f3545e13cf8c69221b1e5f132216a"><td class="memItemLeft" align="right" valign="top"><a id="a397f3545e13cf8c69221b1e5f132216a"></a>
 std::unique_ptr&lt; <a class="el" href="class_addr_manager.html">AddrManager</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>addrMan</b></td></tr>
 <tr class="separator:a397f3545e13cf8c69221b1e5f132216a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afbb6646192567bd2d9adc253d56cff2b"><td class="memItemLeft" align="right" valign="top"><a id="afbb6646192567bd2d9adc253d56cff2b"></a>
+std::queue&lt; int &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>peersProcess</b></td></tr>
+<tr class="separator:afbb6646192567bd2d9adc253d56cff2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a57b8f7bbae2999af703fb3318cd5ef1f"><td class="memItemLeft" align="right" valign="top"><a id="a57b8f7bbae2999af703fb3318cd5ef1f"></a>
 simtime_t&#160;</td><td class="memItemRight" valign="bottom"><b>threadScheduleInterval</b></td></tr>
 <tr class="separator:a57b8f7bbae2999af703fb3318cd5ef1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e2aea8f8c2e4c66d66ecc8de2f01145"><td class="memItemLeft" align="right" valign="top"><a id="a4e2aea8f8c2e4c66d66ecc8de2f01145"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcessed</b></td></tr>
+<tr class="separator:a4e2aea8f8c2e4c66d66ecc8de2f01145"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Node in a proof of work based blockchain network (i.e., Bitcoin, Litecoin, etc). </p>

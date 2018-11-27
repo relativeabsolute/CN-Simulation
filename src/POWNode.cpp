@@ -19,6 +19,7 @@ void POWNode::addNodeToGateMapping(int nodeIndex, cGate *gate) {
 
     // also setup data for node
     peers.insert(std::make_pair(nodeIndex, std::make_unique<POWNodeData>()));
+    peersProcess.push(nodeIndex);
 }
 
 void POWNode::initConnections() {
@@ -88,6 +89,7 @@ void POWNode::readConstantParameters() {
     versionNumber = par("version").intValue();
     minAcceptedVersionNumber = par("minAcceptedVersion").intValue();
     threadScheduleInterval = par("threadScheduleInterval").intValue();
+    maxMessageProcess = par("maxMessageProcess").intValue();
 
     messageGen = std::make_unique<MessageGenerator>(versionNumber);
 }
@@ -157,13 +159,18 @@ void POWNode::processMessage(POWMessage *msg) {
     std::string methodName = msg->getName();
     auto mapIt = messageHandlers.find(methodName);
     if (mapIt != messageHandlers.end()) {
-        EV <<  "Processing message " << msg << std::endl;
-        mapIt->second(*this, msg);
-        // now we can delete the message
-        delete msg;
+        EV << "Processing message " << msg << std::endl;
+        if (checkMessageInScope(msg)) {
+            EV <<  "Message in scope." << std::endl;
+            mapIt->second(*this, msg);
+        } else {
+            EV << "Message not in scope." << std::endl;
+            // TODO: mark misbehaving
+        }
     } else {
         EV << "Handler not found for message of type " << methodName << std::endl;
     }
+    delete msg;
 }
 
 bool POWNode::processIncomingMessages(int peerIndex) {
@@ -200,13 +207,19 @@ bool POWNode::processIncomingMessages(int peerIndex) {
 }
 
 void POWNode::messageHandler() {
+    // only process a certain number of messages at once
+    // need to ensure that each node gets a fair chance at being processed
     EV << "Handling messages in node " << getIndex() << std::endl;
-    for (auto peersIt = peers.begin(); peersIt != peers.end(); ++peersIt) {
-        if (!peersIt->second->flags.test(Disconnect)) {
-            int peerIndex = peersIt->first;
+    for (currentMessagesProcessed = 0; currentMessagesProcessed < maxMessageProcess; ++currentMessagesProcessed) {
+        int peerIndex = peersProcess.front();
+        peersProcess.pop();
+        EV << "Processing and sending messages for node " << peerIndex << std::endl;
+        auto peerIt = peers.find(peerIndex);
+        if (!peerIt->second->flags.test(Disconnect)) {
             processIncomingMessages(peerIndex);
             sendOutgoingMessages(peerIndex);
-        }
+            peersProcess.push(peerIndex);
+        } // don't put the peer back on if it's disconnected
     }
     scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_CHECK_QUEUES, ""));
 }
@@ -236,7 +249,8 @@ void POWNode::handleMessage(cMessage *msg) {
 void POWNode::handleNodeVersionMessage(POWMessage *msg) {
     int sourceNode = msg->getSource();
     int meNode = getIndex();
-    if (msg->getVersionNo() < minAcceptedVersionNumber) {
+    int sourceVersionNo = msg->getVersionNo();
+    if (sourceVersionNo < minAcceptedVersionNumber) {
         // disconnect from nodes that are too old
         EV << "Node " << sourceNode << " using obsolete protocol version.  Minimum accepted version is " << minAcceptedVersionNumber << std::endl;
         sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_REJECT_COMMAND, "reason=obsolete,disconnect=true"), sourceNode);
@@ -244,6 +258,8 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
     } else {
         // TODO: BTC stores starting height of incoming node
         EV << "Node " << sourceNode << " is compatible.  Sending VERACK." << std::endl;
+        peers[sourceNode]->version = sourceVersionNo;
+
         sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_VERACK_COMMAND, ""), sourceNode);
         // TODO: advertise our address if the connection is outbound
         // TODO: BTC does a check for listen flag and not isInitialBlockDownload

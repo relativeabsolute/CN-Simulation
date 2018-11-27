@@ -164,11 +164,14 @@ private:
     std::map<int, cGate*> nodeIndexToGateMap;
     int versionNumber;
     int minAcceptedVersionNumber;
+    int maxMessageProcess;
     std::unique_ptr<MessageGenerator> messageGen;
     // maintain data known about each peer
     std::map<int, std::unique_ptr<POWNodeData> > peers;
     std::unique_ptr<AddrManager> addrMan;
+    std::queue<int> peersProcess; // make sure nodes are processed fairly
     simtime_t threadScheduleInterval;
+    int currentMessagesProcessed;  // counter for number of messages that have been processed in one loop
 };
 
 Define_Module(POWNode)
