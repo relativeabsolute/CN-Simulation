@@ -7,6 +7,7 @@
 
 #include "POWNode.h"
 #include <numeric>
+#include <set>
 
 POWNode::POWNode() : messageGen(nullptr) {
 }
@@ -14,31 +15,38 @@ POWNode::POWNode() : messageGen(nullptr) {
 POWNode::~POWNode() {
 }
 
-void POWNode::addNodeToGateMapping(int nodeIndex, cGate *gate) {
+void POWNode::addNodeToGateMapping(int nodeIndex, cGate *gate, bool inboundValue) {
     EV << "Mapping node " << nodeIndex << " to gate " << gate << std::endl;
     nodeIndexToGateMap[nodeIndex] = gate;
 
     // also setup data for node
     peers.insert(std::make_pair(nodeIndex, std::make_unique<POWNodeData>()));
+    peers[nodeIndex]->flags.set(Inbound, inboundValue);
     peersProcess.push(nodeIndex);
 }
 
 void POWNode::initConnections() {
     EV << "Initializing POWNode." << std::endl;
     const char *defaultNodesStr = par("defaultNodeList").stringValue();
-    std::vector<int> defaultNodes = cStringTokenizer(defaultNodesStr).asIntVector();
+    std::vector<int> defaultNodesVec = cStringTokenizer(defaultNodesStr).asIntVector();
+    std::set<int> defaultNodes(defaultNodesVec.begin(), defaultNodesVec.end());
     const size_t pathStrSize = 6; // node + [ + ]
     char *path = new char[defaultNodes.size() + pathStrSize];
-    for (auto it = defaultNodes.begin(); it != defaultNodes.end(); ++it) {
-        // don't try to connect to ourselves and don't try to connect if we are offline
-        if (*it != getIndex() && isOnline()) {
-            EV << "Attempting to connect from " << getIndex() << " to " << *it << std::endl;
-            sprintf(path, "node[%d]", *it);
-            POWNode *toCheck = check_and_cast<POWNode*>(getModuleByPath(path));
-            if (!toCheck->isOnline()) {
-                EV << "Node " << *it << " is not online.  Moving onto next node." << std::endl;
-            } else {
-                connectTo(*it, toCheck);
+    int meIndex = getIndex();
+    // only connect if we are online and we are not a default node
+    if (isOnline() && defaultNodes.find(meIndex) == defaultNodes.end()) {
+        for (auto it = defaultNodes.begin(); it != defaultNodes.end(); ++it) {
+            // don't try to connect to ourselves
+            int destIndex = *it;
+            if (destIndex != meIndex) {
+                EV << "Attempting to connect from " << meIndex << " to " << destIndex << std::endl;
+                sprintf(path, "node[%d]", destIndex);
+                POWNode *toCheck = check_and_cast<POWNode*>(getModuleByPath(path));
+                if (!toCheck->isOnline()) {
+                    EV << "Node " << destIndex << " is not online.  Moving onto next node." << std::endl;
+                } else {
+                    connectTo(destIndex, toCheck);
+                }
             }
         }
     }
@@ -56,10 +64,10 @@ void POWNode::connectTo(int otherIndex, POWNode *other) {
     // TODO: may want to store the connections returned by connectTo here
     srcGateOut->connectTo(destGateIn);
     EV << "Outbound connection established" << std::endl;
-    addNodeToGateMapping(otherIndex, srcGateOut);
+    addNodeToGateMapping(otherIndex, srcGateOut, false); // we are initiating
     destGateOut->connectTo(srcGateIn);
     EV << "Inbound connection established" << std::endl;
-    other->addNodeToGateMapping(getIndex(), destGateOut);
+    other->addNodeToGateMapping(getIndex(), destGateOut, true);
 
     // schedule address advertisement to the peer
     scheduleAddrAd(otherIndex);
@@ -118,18 +126,18 @@ void POWNode::initialize() {
     // send node version message on outbound connections
     auto msg = messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_NODE_VERSION_COMMAND, "");
 
-    // TODO: schedule messages so that simulation occurs in version, verack, version, etc. instead
-    // of all versions then all veracks
-    broadcastMessage(msg);
+    broadcastMessage(msg, [&, this](int peer){ return !this->peers[peer]->flags.test(Inbound); });
 }
 
-void POWNode::broadcastMessage(POWMessage *msg) {
+void POWNode::broadcastMessage(POWMessage *msg, std::function<bool(int)> predicate) {
     EV << "Broadcasting " << msg << std::endl;
     for (auto mapIterator = nodeIndexToGateMap.begin(); mapIterator != nodeIndexToGateMap.end(); ++mapIterator) {
         // it->first is the index of the destination node
         // it->second is the gate index to send over
-        cMessage *copy = msg->dup();
-        send(copy, mapIterator->second);
+        if (predicate(mapIterator->first)) {
+            cMessage *copy = msg->dup();
+            send(copy, mapIterator->second);
+        }
     }
     delete msg;
 }
@@ -334,23 +342,37 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
         sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_REJECT_COMMAND, "reason=obsolete,disconnect=true"), sourceNode);
         disconnectNode(sourceNode);
     } else {
+        bool sourceInbound = peers[sourceNode]->flags.test(Inbound);
         // TODO: BTC stores starting height of incoming node
+        if (sourceInbound) {
+            EV << "Sending node version message to inbound peer " << sourceNode << std::endl;
+            sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_NODE_VERSION_COMMAND, ""), sourceNode);
+        }
+
         EV << "Node " << sourceNode << " is compatible.  Sending VERACK." << std::endl;
         peers[sourceNode]->version = sourceVersionNo;
 
         sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_VERACK_COMMAND, ""), sourceNode);
-        // TODO: advertise our address if the connection is outbound
-        // TODO: BTC does a check for listen flag and not isInitialBlockDownload
-        peers[sourceNode]->addressesToBeSent.insert(meNode);
 
-        // TODO: BTC defines an ideal number of addresses
-        sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_GETADDR_COMMAND, ""), sourceNode);
-        peers[sourceNode]->flags.set(HasGetAddr);
+        if (!sourceInbound) {
+            // TODO: BTC does a check for listen flag and not isInitialBlockDownload
+            peers[sourceNode]->addressesToBeSent.insert(meNode);
+
+            // TODO: BTC defines an ideal number of addresses
+            sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_GETADDR_COMMAND, ""), sourceNode);
+            peers[sourceNode]->flags.set(HasGetAddr);
+        }
          // TODO: BTC marks the address as good
     }
 }
 
 void POWNode::handleVerackMessage(POWMessage *msg) {
+    int sourceIndex = msg->getSource();
+    EV << "Handling verack message from peer " << sourceIndex << std::endl;
+    if (!peers[sourceIndex]->flags.test(Inbound))  {
+        // TODO: BTC marks the node's state with the currently connected flag, so the timestamp is updated later
+    }
+    EV << "Marking peer " << sourceIndex << " as successfully connected." << std::endl;
     peers[msg->getSource()]->flags.set(SuccessfullyConnected);
 }
 
@@ -369,10 +391,19 @@ void POWNode::handleRejectMessage(POWMessage *msg) {
 
 void POWNode::handleGetAddrMessage(POWMessage *msg) {
     int messageSource = msg->getSource();
+    EV << "Handling getaddr message from peer " << messageSource << std::endl;
+    if (!peers[messageSource]->flags.test(Inbound)) {
+        EV << "Ignoring getaddr message from outbound connection peer " << messageSource << std::endl;
+        return;
+    }
+
     if (peers[messageSource]->flags.test(HasSentAddr)) {
+        EV << "Ignoring repeated getaddr message from peer " << messageSource << std::endl;
         return;
     }
     peers[messageSource]->flags.set(HasSentAddr);
+
+    peers[messageSource]->addressesToBeSent.clear();
     auto pushAddresses = addrMan->getRandomAddresses();
     EV << "Adding " << pushAddresses.size() << " addresses to be sent to node " << messageSource << std::endl;
     for (auto it = pushAddresses.begin(); it != pushAddresses.end(); ++it) {

@@ -115,8 +115,8 @@ Protected Member Functions</h2></td></tr>
 <tr class="separator:a0a7a5686195c3a6a02b4cdff09667d62"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0d46baa20837f1f8340d40a289714fd8"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a0d46baa20837f1f8340d40a289714fd8">isOnline</a> () const</td></tr>
 <tr class="separator:a0d46baa20837f1f8340d40a289714fd8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac5977523ffae3477704dff946bc110ce"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#ac5977523ffae3477704dff946bc110ce">addNodeToGateMapping</a> (int nodeIndex, cGate *gate)</td></tr>
-<tr class="separator:ac5977523ffae3477704dff946bc110ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa9f56bc07cedc43852fc4094c6882499"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#aa9f56bc07cedc43852fc4094c6882499">addNodeToGateMapping</a> (int nodeIndex, cGate *gate, bool inboundValue)</td></tr>
+<tr class="separator:aa9f56bc07cedc43852fc4094c6882499"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-methods"></a>
 Private Member Functions</h2></td></tr>
@@ -128,10 +128,10 @@ Private Member Functions</h2></td></tr>
 <tr class="separator:a9b7acb8cb9799cc7942509d38f3e996b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aba557d49eefb8cf9a349ace74f34cf59"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#aba557d49eefb8cf9a349ace74f34cf59">setupMessageHandlers</a> ()</td></tr>
 <tr class="separator:aba557d49eefb8cf9a349ace74f34cf59"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2ca6c28b2b9f5d523795eeeaa4357033"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a2ca6c28b2b9f5d523795eeeaa4357033">handleSelfMessage</a> (const std::string &amp;methodName)</td></tr>
-<tr class="separator:a2ca6c28b2b9f5d523795eeeaa4357033"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2ceec4a413311e3aae7d56c4b771ee33"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a2ceec4a413311e3aae7d56c4b771ee33">broadcastMessage</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *broadcast)</td></tr>
-<tr class="separator:a2ceec4a413311e3aae7d56c4b771ee33"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6bfdbedfdcce38bd54281a617ef1b580"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a6bfdbedfdcce38bd54281a617ef1b580">handleSelfMessage</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg)</td></tr>
+<tr class="separator:a6bfdbedfdcce38bd54281a617ef1b580"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8e2dbfdb15a315f345ebd04d3067a85b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a8e2dbfdb15a315f345ebd04d3067a85b">broadcastMessage</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *broadcast, std::function&lt; bool(int)&gt; predicate=[](int peer) { return true;})</td></tr>
+<tr class="separator:a8e2dbfdb15a315f345ebd04d3067a85b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad111538784adaa5e4b01ef66dbe34ea6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#ad111538784adaa5e4b01ef66dbe34ea6">handleNodeVersionMessage</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg)</td></tr>
 <tr class="separator:ad111538784adaa5e4b01ef66dbe34ea6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0962b1eed45f40e58608d5c56ade1b69"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a0962b1eed45f40e58608d5c56ade1b69">handleVerackMessage</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg)</td></tr>
@@ -146,14 +146,15 @@ Private Member Functions</h2></td></tr>
 <tr class="separator:a4ec225ba40863dada493742285cc13b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aedf49570e8e52708be1d8b4868c4cd1c"><td class="memItemLeft" align="right" valign="top">std::map&lt; std::string, std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#aedf49570e8e52708be1d8b4868c4cd1c">dataToMap</a> (const std::string &amp;messageData) const</td></tr>
 <tr class="separator:aedf49570e8e52708be1d8b4868c4cd1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad5267b76b61df23aa17345403aa792cb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#ad5267b76b61df23aa17345403aa792cb">messageHandler</a> ()</td></tr>
-<tr class="separator:ad5267b76b61df23aa17345403aa792cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acb6520e40ad6c1428a8f23f3c91099a5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#acb6520e40ad6c1428a8f23f3c91099a5">messageHandler</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg)</td></tr>
+<tr class="separator:acb6520e40ad6c1428a8f23f3c91099a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2a3f7b088e3e2683034cecbf6c4f3d4e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a2a3f7b088e3e2683034cecbf6c4f3d4e">advertiseAddresses</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg)</td></tr>
+<tr class="separator:a2a3f7b088e3e2683034cecbf6c4f3d4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afbb447aa3178a4437259b989fda1e41c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#afbb447aa3178a4437259b989fda1e41c">processMessage</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg)</td></tr>
 <tr class="separator:afbb447aa3178a4437259b989fda1e41c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afeb13fbd74d0ecbb30564793246325d8"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#afeb13fbd74d0ecbb30564793246325d8">processIncomingMessages</a> (int peerIndex)</td></tr>
 <tr class="separator:afeb13fbd74d0ecbb30564793246325d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3fecf65b5cca776e104dfbb11b4af9df"><td class="memItemLeft" align="right" valign="top"><a id="a3fecf65b5cca776e104dfbb11b4af9df"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>sendOutgoingMessages</b> (int peerIndex)</td></tr>
+<tr class="memitem:a3fecf65b5cca776e104dfbb11b4af9df"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a3fecf65b5cca776e104dfbb11b4af9df">sendOutgoingMessages</a> (int peerIndex)</td></tr>
 <tr class="separator:a3fecf65b5cca776e104dfbb11b4af9df"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a82a97ea81d5c61b0a83f96565c314643"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a82a97ea81d5c61b0a83f96565c314643">disconnectNode</a> (int nodeIndex)</td></tr>
 <tr class="separator:a82a97ea81d5c61b0a83f96565c314643"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -161,18 +162,19 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>sendOutgoingMessages<
 <tr class="separator:a23853760cb6c3f1c094feeaa7d4126c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a58be262cae637bbb0b7df9094437f942"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a58be262cae637bbb0b7df9094437f942">checkMessageInScope</a> (<a class="el" href="class_p_o_w_message.html">POWMessage</a> *msg)</td></tr>
 <tr class="separator:a58be262cae637bbb0b7df9094437f942"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5387f30e252aeaeb6a8e15abf0dc2844"><td class="memItemLeft" align="right" valign="top"><a id="a5387f30e252aeaeb6a8e15abf0dc2844"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>connectTo</b> (int otherIndex, <a class="el" href="class_p_o_w_node.html">POWNode</a> *other)</td></tr>
+<tr class="memitem:a5387f30e252aeaeb6a8e15abf0dc2844"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#a5387f30e252aeaeb6a8e15abf0dc2844">connectTo</a> (int otherIndex, <a class="el" href="class_p_o_w_node.html">POWNode</a> *other)</td></tr>
 <tr class="separator:a5387f30e252aeaeb6a8e15abf0dc2844"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1c69cc1a9cc2a32c369172605eda461"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_o_w_node.html#ab1c69cc1a9cc2a32c369172605eda461">scheduleAddrAd</a> (int peerIndex)</td></tr>
+<tr class="separator:ab1c69cc1a9cc2a32c369172605eda461"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-attribs"></a>
 Private Attributes</h2></td></tr>
 <tr class="memitem:ada832fb3bb01387098fae38d48dd4254"><td class="memItemLeft" align="right" valign="top"><a id="ada832fb3bb01387098fae38d48dd4254"></a>
 std::map&lt; std::string, std::function&lt; void(<a class="el" href="class_p_o_w_node.html">POWNode</a> &amp;, <a class="el" href="class_p_o_w_message.html">POWMessage</a> *)&gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>messageHandlers</b></td></tr>
 <tr class="separator:ada832fb3bb01387098fae38d48dd4254"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aae825d70b399425888359a6ec736d0d8"><td class="memItemLeft" align="right" valign="top"><a id="aae825d70b399425888359a6ec736d0d8"></a>
-std::map&lt; std::string, std::function&lt; void(<a class="el" href="class_p_o_w_node.html">POWNode</a> &amp;)&gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>selfMessageHandlers</b></td></tr>
-<tr class="separator:aae825d70b399425888359a6ec736d0d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe5cf1a6164b0295d2541b3fc565c4bb"><td class="memItemLeft" align="right" valign="top"><a id="afe5cf1a6164b0295d2541b3fc565c4bb"></a>
+std::map&lt; std::string, std::function&lt; void(<a class="el" href="class_p_o_w_node.html">POWNode</a> &amp;, <a class="el" href="class_p_o_w_message.html">POWMessage</a> *)&gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>selfMessageHandlers</b></td></tr>
+<tr class="separator:afe5cf1a6164b0295d2541b3fc565c4bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7d92ed8018f9cf7bdc12e252fa182ec0"><td class="memItemLeft" align="right" valign="top"><a id="a7d92ed8018f9cf7bdc12e252fa182ec0"></a>
 std::map&lt; int, cGate * &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>nodeIndexToGateMap</b></td></tr>
 <tr class="separator:a7d92ed8018f9cf7bdc12e252fa182ec0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -185,6 +187,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>minAcceptedVersionNumb
 <tr class="memitem:acfddbdbe0ecf4ef685737fa4ce509ac5"><td class="memItemLeft" align="right" valign="top"><a id="acfddbdbe0ecf4ef685737fa4ce509ac5"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>maxMessageProcess</b></td></tr>
 <tr class="separator:acfddbdbe0ecf4ef685737fa4ce509ac5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad42ef9203a675f334209249834ceb0bc"><td class="memItemLeft" align="right" valign="top"><a id="ad42ef9203a675f334209249834ceb0bc"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>addrSendInterval</b></td></tr>
+<tr class="separator:ad42ef9203a675f334209249834ceb0bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a472e2a2b22bf300d8f8ed9d6af1996fd"><td class="memItemLeft" align="right" valign="top"><a id="a472e2a2b22bf300d8f8ed9d6af1996fd"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>maxAddrAd</b></td></tr>
+<tr class="separator:a472e2a2b22bf300d8f8ed9d6af1996fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a842daa79e6912fa649a603d60a2ffaad"><td class="memItemLeft" align="right" valign="top"><a id="a842daa79e6912fa649a603d60a2ffaad"></a>
 std::unique_ptr&lt; <a class="el" href="class_message_generator.html">MessageGenerator</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>messageGen</b></td></tr>
 <tr class="separator:a842daa79e6912fa649a603d60a2ffaad"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -197,9 +205,9 @@ std::unique_ptr&lt; <a class="el" href="class_addr_manager.html">AddrManager</a>
 <tr class="memitem:afbb6646192567bd2d9adc253d56cff2b"><td class="memItemLeft" align="right" valign="top"><a id="afbb6646192567bd2d9adc253d56cff2b"></a>
 std::queue&lt; int &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>peersProcess</b></td></tr>
 <tr class="separator:afbb6646192567bd2d9adc253d56cff2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a57b8f7bbae2999af703fb3318cd5ef1f"><td class="memItemLeft" align="right" valign="top"><a id="a57b8f7bbae2999af703fb3318cd5ef1f"></a>
-simtime_t&#160;</td><td class="memItemRight" valign="bottom"><b>threadScheduleInterval</b></td></tr>
-<tr class="separator:a57b8f7bbae2999af703fb3318cd5ef1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae5bbd0ed07ae8b979877672cbffb0457"><td class="memItemLeft" align="right" valign="top"><a id="ae5bbd0ed07ae8b979877672cbffb0457"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>threadScheduleInterval</b></td></tr>
+<tr class="separator:ae5bbd0ed07ae8b979877672cbffb0457"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4e2aea8f8c2e4c66d66ecc8de2f01145"><td class="memItemLeft" align="right" valign="top"><a id="a4e2aea8f8c2e4c66d66ecc8de2f01145"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcessed</b></td></tr>
 <tr class="separator:a4e2aea8f8c2e4c66d66ecc8de2f01145"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -207,8 +215,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Node in a proof of work based blockchain network (i.e., Bitcoin, Litecoin, etc). </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a id="ac5977523ffae3477704dff946bc110ce"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac5977523ffae3477704dff946bc110ce">&#9670;&nbsp;</a></span>addNodeToGateMapping()</h2>
+<a id="aa9f56bc07cedc43852fc4094c6882499"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa9f56bc07cedc43852fc4094c6882499">&#9670;&nbsp;</a></span>addNodeToGateMapping()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -226,7 +234,13 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">cGate *&#160;</td>
-          <td class="paramname"><em>gate</em>&#160;</td>
+          <td class="paramname"><em>gate</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>inboundValue</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -244,14 +258,47 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
   <table class="params">
     <tr><td class="paramname">nodeIndex</td><td>The intended destination index for messages </td></tr>
     <tr><td class="paramname">gate</td><td>The outgoing gate to send messages over. </td></tr>
+    <tr><td class="paramname">inboundValue</td><td>True if the node marked by nodeIndex is initiating the connection </td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a id="a2ceec4a413311e3aae7d56c4b771ee33"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2ceec4a413311e3aae7d56c4b771ee33">&#9670;&nbsp;</a></span>broadcastMessage()</h2>
+<a id="a2a3f7b088e3e2683034cecbf6c4f3d4e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2a3f7b088e3e2683034cecbf6c4f3d4e">&#9670;&nbsp;</a></span>advertiseAddresses()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void POWNode::advertiseAddresses </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="class_p_o_w_message.html">POWMessage</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>"Thread" that advertises address to the peer specified by the message. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>Message carrying index of peer to advertise addresses to. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a8e2dbfdb15a315f345ebd04d3067a85b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8e2dbfdb15a315f345ebd04d3067a85b">&#9670;&nbsp;</a></span>broadcastMessage()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -263,8 +310,18 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
           <td class="memname">void POWNode::broadcastMessage </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="class_p_o_w_message.html">POWMessage</a> *&#160;</td>
-          <td class="paramname"><em>broadcast</em></td><td>)</td>
+          <td class="paramname"><em>broadcast</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">std::function&lt; bool(int)&gt;&#160;</td>
+          <td class="paramname"><em>predicate</em> = <code>[](int&#160;peer)&#160;{&#160;return&#160;true;&#160;}</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
   </td>
@@ -273,9 +330,10 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Send given message to all currently known peers. Copies the message for each one. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Send given message to all currently known peers that the given predicate is true for. Copies the message for each one. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">broadcast</td><td>Message to broadcast. </td></tr>
+    <tr><td class="paramname">predicate</td><td>Optional predicate used to filter peers. Defaults to a predicate that returns true for all peers. </td></tr>
   </table>
   </dd>
 </dl>
@@ -312,6 +370,49 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the message is in scope, false otherwise. </dd></dl>
+
+</div>
+</div>
+<a id="a5387f30e252aeaeb6a8e15abf0dc2844"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5387f30e252aeaeb6a8e15abf0dc2844">&#9670;&nbsp;</a></span>connectTo()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void POWNode::connectTo </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>otherIndex</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="class_p_o_w_node.html">POWNode</a> *&#160;</td>
+          <td class="paramname"><em>other</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Create a connection with the specified node. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">otherIndex</td><td>index of the peer. Used to map the gates in the connection. </td></tr>
+    <tr><td class="paramname">other</td><td>node representing the peer. Used to make sure data stored and the connection are symmetric. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -508,8 +609,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
 
 </div>
 </div>
-<a id="a2ca6c28b2b9f5d523795eeeaa4357033"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2ca6c28b2b9f5d523795eeeaa4357033">&#9670;&nbsp;</a></span>handleSelfMessage()</h2>
+<a id="a6bfdbedfdcce38bd54281a617ef1b580"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6bfdbedfdcce38bd54281a617ef1b580">&#9670;&nbsp;</a></span>handleSelfMessage()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -520,8 +621,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
         <tr>
           <td class="memname">void POWNode::handleSelfMessage </td>
           <td>(</td>
-          <td class="paramtype">const std::string &amp;&#160;</td>
-          <td class="paramname"><em>methodName</em></td><td>)</td>
+          <td class="paramtype"><a class="el" href="class_p_o_w_message.html">POWMessage</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -531,9 +632,9 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Initiate the appropriate "thread" for the given name. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Initiate the appropriate "thread" for the given self message. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">methodName</td><td>Name of thread to invoke. </td></tr>
+    <tr><td class="paramname">msg</td><td>Message indicating what thread to start. </td></tr>
   </table>
   </dd>
 </dl>
@@ -711,8 +812,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
 
 </div>
 </div>
-<a id="ad5267b76b61df23aa17345403aa792cb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad5267b76b61df23aa17345403aa792cb">&#9670;&nbsp;</a></span>messageHandler()</h2>
+<a id="acb6520e40ad6c1428a8f23f3c91099a5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acb6520e40ad6c1428a8f23f3c91099a5">&#9670;&nbsp;</a></span>messageHandler()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -723,7 +824,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
         <tr>
           <td class="memname">void POWNode::messageHandler </td>
           <td>(</td>
-          <td class="paramname"></td><td>)</td>
+          <td class="paramtype"><a class="el" href="class_p_o_w_message.html">POWMessage</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -733,7 +835,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
   </tr>
 </table>
 </div><div class="memdoc">
-<p>"Thread" that checks peers' incoming and outgoing message queues. Calls processIncomingMessages and sendOutgoingMessages for each peer. </p>
+<p>"Thread" that checks peers' incoming and outgoing message queues. Calls processIncomingMessages and sendOutgoingMessages for each peer. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>Message that initiated the check. Not used (only here to work with the handler map) </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -823,6 +930,38 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
 
 </div>
 </div>
+<a id="ab1c69cc1a9cc2a32c369172605eda461"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab1c69cc1a9cc2a32c369172605eda461">&#9670;&nbsp;</a></span>scheduleAddrAd()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void POWNode::scheduleAddrAd </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>peerIndex</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Schedule an address advertisement to the given peer. The advertisement is poisson-distributed according to lambda = threadScheduleInterval. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">peerIndex</td><td>index of peer to send ad to. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a23853760cb6c3f1c094feeaa7d4126c4"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a23853760cb6c3f1c094feeaa7d4126c4">&#9670;&nbsp;</a></span>sendMessages()</h2>
 
@@ -846,6 +985,38 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>currentMessagesProcess
 </table>
 </div><div class="memdoc">
 <p>Part of node loop run post initialization. Sends any necessary data to peers. </p>
+
+</div>
+</div>
+<a id="a3fecf65b5cca776e104dfbb11b4af9df"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3fecf65b5cca776e104dfbb11b4af9df">&#9670;&nbsp;</a></span>sendOutgoingMessages()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void POWNode::sendOutgoingMessages </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>peerIndex</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Process data to be sent to the specified peer. Data can include addresses, inventory, block headers, blocks, etc. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">peerIndex</td><td>Index of peer to send data to. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['addresses',['addresses',['../struct_p_o_w_node_data.html#aba1a218227f9cc158692b47828fc96c8',1,'POWNodeData']]]
+  ['addressestobesent',['addressesToBeSent',['../struct_p_o_w_node_data.html#afb63740ee949a1c3639958a00fb77e03',1,'POWNodeData']]]
 ];

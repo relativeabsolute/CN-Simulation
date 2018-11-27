@@ -51,8 +51,9 @@ protected:
     /*! Map the node index to the outgoing gate to be used to send messages over.
      * \param nodeIndex The intended destination index for messages
      * \param gate The outgoing gate to send messages over.
+     * \param inboundValue True if the node marked by nodeIndex is initiating the connection
      */
-    void addNodeToGateMapping(int nodeIndex, cGate *gate);
+    void addNodeToGateMapping(int nodeIndex, cGate *gate, bool inboundValue);
 private:
     /*! Internal initialzation steps, done before anything network related.
      * These involve loading data files, connecting message handlers, etc.
@@ -79,10 +80,11 @@ private:
      */
     void handleSelfMessage(POWMessage *msg);
 
-    /*! Send given message to all currently known peers.  Copies the message for each one.
+    /*! Send given message to all currently known peers that the given predicate is true for.  Copies the message for each one.
      * \param broadcast Message to broadcast.
+     * \param predicate Optional predicate used to filter peers.  Defaults to a predicate that returns true for all peers.
      */
-    void broadcastMessage(POWMessage *broadcast);
+    void broadcastMessage(POWMessage *broadcast, std::function<bool(int)> predicate = [](int peer) { return true; });
 
     /*! Handle an incoming node version message.  If the node's version is less than our minimum acceptable
      * protocol version, send a reject message in response, otherwise, send a verack message in response.
@@ -134,11 +136,6 @@ private:
      */
     void advertiseAddresses(POWMessage *msg);
 
-    /*! Send queued up addresses to the given peer.
-     *
-     */
-    void handleSendAddresses(int peerIndex);
-
     /*! Process a message from a queue.
      * Calls the message's appropriate handler, if one exists.
      */
@@ -150,6 +147,9 @@ private:
      */
     bool processIncomingMessages(int peerIndex);
 
+    /*! Process data to be sent to the specified peer.  Data can include addresses, inventory, block headers, blocks, etc.
+     * \param peerIndex Index of peer to send data to.
+     */
     void sendOutgoingMessages(int peerIndex);
 
     /*! Disconnect from the specified node.
@@ -168,8 +168,15 @@ private:
      */
     bool checkMessageInScope(POWMessage *msg);
 
+    /*! Create a connection with the specified node.
+     * \param otherIndex index of the peer.  Used to map the gates in the connection.
+     * \param other node representing the peer.  Used to make sure data stored and the connection are symmetric.
+     */
     void connectTo(int otherIndex, POWNode *other);
 
+    /*! Schedule an address advertisement to the given peer.  The advertisement is poisson-distributed according to lambda = threadScheduleInterval.
+     * \param peerIndex index of peer to send ad to.
+     */
     void scheduleAddrAd(int peerIndex);
 
     std::map<std::string, std::function<void(POWNode &, POWMessage *)> > messageHandlers;

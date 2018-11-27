@@ -14,6 +14,7 @@
 #include <bitset>
 #include "pow_message_m.h"
 
+// TODO: may want to separate flags to be stored by node and by node state
 enum POWNodeFlags {
     HasGetAddr,
     SuccessfullyConnected,

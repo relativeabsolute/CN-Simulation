@@ -98,14 +98,17 @@ $(document).ready(function(){initNavTree('struct_p_o_w_node_data.html','');});
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:aba1a218227f9cc158692b47828fc96c8"><td class="memItemLeft" align="right" valign="top">std::deque&lt; int &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_p_o_w_node_data.html#aba1a218227f9cc158692b47828fc96c8">addresses</a></td></tr>
-<tr class="separator:aba1a218227f9cc158692b47828fc96c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afb63740ee949a1c3639958a00fb77e03"><td class="memItemLeft" align="right" valign="top">std::set&lt; int &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_p_o_w_node_data.html#afb63740ee949a1c3639958a00fb77e03">addressesToBeSent</a></td></tr>
+<tr class="separator:afb63740ee949a1c3639958a00fb77e03"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af905fe115441be7deed8b2c968ce7dde"><td class="memItemLeft" align="right" valign="top"><a id="af905fe115441be7deed8b2c968ce7dde"></a>
 std::deque&lt; <a class="el" href="class_p_o_w_message.html">POWMessage</a> * &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>incomingMessages</b></td></tr>
 <tr class="separator:af905fe115441be7deed8b2c968ce7dde"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a09a5ae42662c73a7ca3f89536ccdf3c0"><td class="memItemLeft" align="right" valign="top"><a id="a09a5ae42662c73a7ca3f89536ccdf3c0"></a>
 std::bitset&lt; NumFlags &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>flags</b></td></tr>
 <tr class="separator:a09a5ae42662c73a7ca3f89536ccdf3c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8f31e3dc65835e5efc6b3b82ec8b88f3"><td class="memItemLeft" align="right" valign="top"><a id="a8f31e3dc65835e5efc6b3b82ec8b88f3"></a>
+std::set&lt; int &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>knownAddresses</b></td></tr>
+<tr class="separator:a8f31e3dc65835e5efc6b3b82ec8b88f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad69f60c7ea93f683068e21a388fdb7fc"><td class="memItemLeft" align="right" valign="top"><a id="ad69f60c7ea93f683068e21a388fdb7fc"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>version</b></td></tr>
 <tr class="separator:ad69f60c7ea93f683068e21a388fdb7fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -113,18 +116,18 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>version</b></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Structure representing data a node knows about a peer. </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
-<a id="aba1a218227f9cc158692b47828fc96c8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aba1a218227f9cc158692b47828fc96c8">&#9670;&nbsp;</a></span>addresses</h2>
+<a id="afb63740ee949a1c3639958a00fb77e03"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afb63740ee949a1c3639958a00fb77e03">&#9670;&nbsp;</a></span>addressesToBeSent</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">std::deque&lt;int&gt; POWNodeData::addresses</td>
+          <td class="memname">std::set&lt;int&gt; POWNodeData::addressesToBeSent</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Contains addresses of peers to be advertised to the peer. We only use queue behavior, but having a deque allows convenience when inserting addresses. </p>
+<p>Contains addresses of peers to be advertised to the peer. </p>
 
 </div>
 </div>
