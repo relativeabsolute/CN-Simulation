@@ -18,12 +18,17 @@ package p2p_sim.simulations;
 simple POWNode extends P2PNode {
     parameters:
         string defaultNodeList;
+        string dataDir = default("data");
         bool online = default(true);
         int version = default(1);
         int minAcceptedVersion = default(1);
         int threadScheduleInterval = default(30); // interval at which to check data queues, etc.
-        int maxMessageProcess = default(2);  // number of messages to process before passing the execution context
+        int maxMessageProcess = default(4);  // number of messages to process before passing the execution context
         int maxAddrAd = default(5);  // maximum number of addresses to send in an advertisement
+        int numAddrRelay = default(2); // number of peers to relay a new address to
+        int addrRelayVecSize = default(10); // limit for relay check
+        int dumpAddressesInterval = default(120);  // interval to dump addresses in seconds
+        double randomAddressFraction = default(1);  // fraction from 0 to 1
     @class(POWNode);
 }
 

@@ -8,12 +8,23 @@
 #include "addr_manager.h"
 #include <algorithm>
 #include <cmath>
+#include <omnetpp.h>
 
-std::vector<int> AddrManager::getRandomAddresses() {
+std::vector<int> AddrManager::getRandomAddresses(int n) {
     // algorithm: shuffle addresses, then return subvector of length numRandomAddresses
-    std::random_shuffle(addresses.begin(), addresses.end());
+    if (n == -1) {
+        n = numRandomAddresses;
+    }
 
-    return std::vector<int>(addresses.begin(), addresses.begin() + numRandomAddresses);
+    std::vector<int> result(addresses.size());
+    std::copy(addresses.begin(), addresses.end(), std::back_inserter(result));
+    std::random_shuffle(result.begin(), result.end());
+
+    return std::vector<int>(result.begin(), result.begin() + n);
+}
+
+std::set<int> AddrManager::allAddresses() const {
+    return addresses;
 }
 
 AddrManager::AddrManager(double fraction) : addressFraction(fraction) {
@@ -21,5 +32,11 @@ AddrManager::AddrManager(double fraction) : addressFraction(fraction) {
 }
 
 void AddrManager::addAddress(int newAddress) {
-    addresses.push_back(newAddress);
+    addresses.insert(newAddress);
+}
+
+void AddrManager::addAddresses(const std::vector<int> &newAddresses) {
+    for (int address : newAddresses) {
+        addAddress(address);
+    }
 }

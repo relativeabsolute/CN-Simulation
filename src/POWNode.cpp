@@ -8,13 +8,22 @@
 #include "POWNode.h"
 #include <numeric>
 #include <set>
+#include <fstream>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 POWNode::POWNode() : messageGen(nullptr) {
 }
 
 POWNode::~POWNode() {
+    // dump any outgoing or incoming messages
+    for (auto &kv : peers) {
+        kv.second->incomingMessages.clear();
+    }
 }
 
+#if(1) // initialization steps
 void POWNode::addNodeToGateMapping(int nodeIndex, cGate *gate, bool inboundValue) {
     EV << "Mapping node " << nodeIndex << " to gate " << gate << std::endl;
     nodeIndexToGateMap[nodeIndex] = gate;
@@ -27,33 +36,32 @@ void POWNode::addNodeToGateMapping(int nodeIndex, cGate *gate, bool inboundValue
 
 void POWNode::initConnections() {
     EV << "Initializing POWNode." << std::endl;
-    const char *defaultNodesStr = par("defaultNodeList").stringValue();
-    std::vector<int> defaultNodesVec = cStringTokenizer(defaultNodesStr).asIntVector();
-    std::set<int> defaultNodes(defaultNodesVec.begin(), defaultNodesVec.end());
-    const size_t pathStrSize = 6; // node + [ + ]
-    char *path = new char[defaultNodes.size() + pathStrSize];
+
+    //const size_t pathStrSize = 6; // node + [ + ]
+    //char *path = new char[defaultNodes.size() + pathStrSize];
+    std::string nodePath;
     int meIndex = getIndex();
     // only connect if we are online and we are not a default node
-    if (isOnline() && defaultNodes.find(meIndex) == defaultNodes.end()) {
-        for (auto it = defaultNodes.begin(); it != defaultNodes.end(); ++it) {
-            // don't try to connect to ourselves
-            int destIndex = *it;
-            if (destIndex != meIndex) {
-                EV << "Attempting to connect from " << meIndex << " to " << destIndex << std::endl;
-                sprintf(path, "node[%d]", destIndex);
-                POWNode *toCheck = check_and_cast<POWNode*>(getModuleByPath(path));
+    if (isOnline() && std::find(defaultNodes.begin(), defaultNodes.end(), meIndex) == defaultNodes.end()) {
+        for (int addr : addrMan->allAddresses()) {
+            if (addr != meIndex) {
+                EV << "Attempting to connect from " << meIndex << " to " << addr << std::endl;
+                nodePath = "node[" + std::to_string(addr) + "]";
+                //sprintf(path, "node[%d]", addr);
+                POWNode *toCheck = check_and_cast<POWNode*>(getModuleByPath(nodePath.c_str()));
                 if (!toCheck->isOnline()) {
-                    EV << "Node " << destIndex << " is not online.  Moving onto next node." << std::endl;
+                    EV << "Node " << addr << " is not online.  Moving onto next node." << std::endl;
                 } else {
-                    connectTo(destIndex, toCheck);
+                    connectTo(addr, toCheck);
                 }
             }
         }
     }
-    delete[] path;
+    //delete[] path;
 }
 
 void POWNode::connectTo(int otherIndex, POWNode *other) {
+    int meIndex = getIndex();
     // TODO: put limit on number of gates/connections?
     cGate *destGateIn, *destGateOut;
     other->getOrCreateFirstUnconnectedGatePair("gate", false, true, destGateIn, destGateOut);
@@ -63,11 +71,11 @@ void POWNode::connectTo(int otherIndex, POWNode *other) {
 
     // TODO: may want to store the connections returned by connectTo here
     srcGateOut->connectTo(destGateIn);
-    EV << "Outbound connection established" << std::endl;
+    EV << meIndex << " to " << otherIndex << " connection type: outbound" << std::endl;
     addNodeToGateMapping(otherIndex, srcGateOut, false); // we are initiating
     destGateOut->connectTo(srcGateIn);
-    EV << "Inbound connection established" << std::endl;
-    other->addNodeToGateMapping(getIndex(), destGateOut, true);
+    EV << otherIndex << " to " << meIndex << " connection type: inbound" << std::endl;
+    other->addNodeToGateMapping(meIndex, destGateOut, true);
 
     // schedule address advertisement to the peer
     scheduleAddrAd(otherIndex);
@@ -76,6 +84,7 @@ void POWNode::connectTo(int otherIndex, POWNode *other) {
 void POWNode::setupMessageHandlers() {
     selfMessageHandlers[MessageGenerator::MESSAGE_CHECK_QUEUES] = &POWNode::messageHandler;
     selfMessageHandlers[MessageGenerator::MESSAGE_ADVERTISE_ADDRESSES] = &POWNode::advertiseAddresses;
+    selfMessageHandlers[MessageGenerator::MESSAGE_DUMP_ADDRS] = &POWNode::dumpAddresses;
 
     messageHandlers[MessageGenerator::MESSAGE_NODE_VERSION_COMMAND] = &POWNode::handleNodeVersionMessage;
     messageHandlers[MessageGenerator::MESSAGE_VERACK_COMMAND] = &POWNode::handleVerackMessage;
@@ -93,10 +102,36 @@ void POWNode::internalInitialize() {
     // connect message handlers
     setupMessageHandlers();
 
-    // internal set up step 2:
-    // read peer "addresses" from this node's peers.dat
+    // internal set up step 2a:
+    // create data directory if necessary
+    EV << "Current path: " << fs::current_path().string() << std::endl;
+    fs::create_directory(dataDir);
+    // step 2b: read peer "addresses" from this node's peers.dat
     // NOTE: this does NOT set up connections to these peers
-    addrMan = std::make_unique<AddrManager>(0.5);
+    addrMan = std::make_unique<AddrManager>(randomAddressFraction);
+    readAddresses();
+}
+
+void POWNode::readAddresses() {
+    std::vector<int> addresses;
+    if (!fs::exists(addressesFile)) {
+        EV << "Addresses file " << addressesFile << " for node " << getIndex() << " does not exist.  Reading default nodes." << std::endl;
+        addresses.assign(defaultNodes.begin(), defaultNodes.end());
+    } else {
+        EV << "Reading known peer addresses for node " << getIndex() << std::endl;
+        std::ifstream fileReader(addressesFile, std::ios::in | std::ios::binary);
+        if (fileReader) {
+            std::string fileContents;
+            fileReader >> fileContents;
+            addresses = stringAsVector(fileContents);
+        }
+    }
+    EV << "Addresses: ";
+    for (int addr : addresses) {
+        EV << addr << " ";
+    }
+    EV << std::endl;
+    addrMan->addAddresses(addresses);
 }
 
 void POWNode::readConstantParameters() {
@@ -105,8 +140,21 @@ void POWNode::readConstantParameters() {
     threadScheduleInterval = par("threadScheduleInterval").intValue();
     maxMessageProcess = par("maxMessageProcess").intValue();
     maxAddrAd = par("maxAddrAd").intValue();
+    numAddrRelay = par("numAddrRelay").intValue();
+    addrRelayVecSize = par("addrRelayVecSize").intValue();
+    dumpAddressesInterval = par("dumpAddressesInterval").intValue();
+    dataDir = par("dataDir").stringValue();
+    addressesFile = (fs::path(dataDir) / (std::to_string(getIndex()) + ".txt")).string();
+    const char *defaultNodesStr = par("defaultNodeList").stringValue();
+    defaultNodes = cStringTokenizer(defaultNodesStr).asIntVector();
+    randomAddressFraction = par("randomAddressFraction").doubleValue();
 
     messageGen = std::make_unique<MessageGenerator>(versionNumber);
+}
+
+void POWNode::scheduleSelfMessages() {
+    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_CHECK_QUEUES, ""));
+    scheduleAt(simTime() + dumpAddressesInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_DUMP_ADDRS, ""));
 }
 
 void POWNode::initialize() {
@@ -118,14 +166,15 @@ void POWNode::initialize() {
     initConnections();
 
     // step 2:
-    // set up thread simulation schedule
+    // set up self scheduled messages
     // just need to schedule one self message because the handler will schedule the next one
-    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_CHECK_QUEUES, ""));
+    scheduleSelfMessages();
 
     // step 3:
     // send node version message on outbound connections
     auto msg = messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_NODE_VERSION_COMMAND, "");
 
+    EV << "Broadcasting node version message to outbound peers." << std::endl;
     broadcastMessage(msg, [&, this](int peer){ return !this->peers[peer]->flags.test(Inbound); });
 }
 
@@ -141,31 +190,9 @@ void POWNode::broadcastMessage(POWMessage *msg, std::function<bool(int)> predica
     }
     delete msg;
 }
+#endif
 
-bool POWNode::isOnline() const {
-    return par("online").boolValue();
-}
-
-bool POWNode::checkMessageInScope(POWMessage *msg) {
-    std::string messageName = msg->getName();
-    if (messageGen->messageInScope(messageName, PreVersion)) {
-        return true;
-    }
-    // need to check if we have a version for the incoming node
-    int nodeSource = msg->getSource();
-    if (peers[nodeSource]->version == 0) {
-        // TODO: set misbehavior score?
-        return false;
-    }
-    if (!messageGen->messageInScope(messageName, PreVerack)) {
-        if (!peers[nodeSource]->flags[SuccessfullyConnected]) {
-            // TODO: set misbehavior score
-            return false;
-        }
-    }
-    return true;
-}
-
+#if(1) // handle incoming self messages
 void POWNode::sendOutgoingMessages(int peerIndex) {
     auto peer = peers.find(peerIndex);
     if (peer != peers.end()) {
@@ -209,7 +236,7 @@ void POWNode::processMessage(POWMessage *msg) {
 }
 
 bool POWNode::processIncomingMessages(int peerIndex) {
-    // TODO: BTC checks a received data buffer for this index and calls processGetData if it's not empty
+    // TODO: check a received data buffer for this index and calls processGetData if it's not empty
     auto peer = peers.find(peerIndex);
     bool moreWork = false;
     if (peer != peers.end()) {
@@ -217,7 +244,7 @@ bool POWNode::processIncomingMessages(int peerIndex) {
             EV << "Node " << peerIndex << " scheduled for disconnect.  Not processing incoming message." << std::endl;
             return false;
         }
-        // TODO: BTC checks the received data buffer again here, and returns true if it is not empty
+        // TODO: check the received data buffer again here, and return true if it is not empty
         if (peer->second->flags.test(PauseSend)) {
             EV << "Send buffer for node " << peerIndex << " is full.  Not processing incoming message." << std::endl;
             return false;
@@ -232,12 +259,12 @@ bool POWNode::processIncomingMessages(int peerIndex) {
         peer->second->flags[PauseReceive] = 0; // TODO: set if the queue size is greater than receiveFloodSize
         moreWork = !peer->second->incomingMessages.empty();
 
-        // TODO: BTC checks message checksum here
+        // TODO: check checksum here
         processMessage(msg);
 
-        // TODO: BTC checks received data buffer again here
+        // TODO: check received data buffer (again) here
 
-        // TODO: BTC sends reject messages and checks for banned peers here
+        // TODO: send reject messages and check for banned peers
     } else {
         EV << "Attempted to process messages for nonexistant node " << peerIndex << std::endl;
     }
@@ -251,10 +278,13 @@ void POWNode::scheduleAddrAd(int peerIndex) {
 }
 
 void POWNode::advertiseAddresses(POWMessage *msg) {
-    std::string data = msg->getData();
     // data is form peerIndex=<index>
-    // so just get the substring after the equal sign
-    int adTarget = std::stoi(data.substr(data.find('=') + 1));
+    EV << "Performing scheduled address advertisement.  Message that triggered this: " << msg->getFullName() << std::endl;
+    EV_DETAIL << "Message data: " << msg->getData() << std::endl;
+    std::map<std::string, std::string> messageData = dataToMap(msg->getData());
+    std::string peerIndexStr = messageData["peerIndex"];
+    EV_DETAIL << "Target peer: \"" << peerIndexStr << "\"" << std::endl;
+    int adTarget = std::stoi(messageData["peerIndex"]);
     if (!peers[adTarget]->flags.test(SuccessfullyConnected) || peers[adTarget]->flags.test(Disconnect)) {
         EV << "Peer " << adTarget << " disconnected.  Not advertising addresses." << std::endl;
     } else {
@@ -270,6 +300,8 @@ void POWNode::advertiseAddresses(POWMessage *msg) {
                         std::string data = "addresses=";
                         data += std::accumulate(addresses.begin() + 1, addresses.end(), std::to_string(addresses[0]),
                                 [](const std::string &a, int b) { return a + "," + std::to_string(b); });
+                        EV << "Advertising " << addresses.size() << " to peer " << adTarget << std::endl;
+                        EV_DETAIL << "Advertisement contents: " << vectorAsString(addresses) << std::endl;
                         sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_ADDR_COMMAND, data), adTarget);
                         addresses.clear();
                     }
@@ -277,6 +309,8 @@ void POWNode::advertiseAddresses(POWMessage *msg) {
             }
             peer->second->addressesToBeSent.clear();
             if (!addresses.empty()) {
+                EV << "Advertising " << addresses.size() << " to peer " << adTarget << std::endl;
+                EV_DETAIL << "Advertisement contents: " << vectorAsString(addresses) << std::endl;
                 std::string data = "addresses=";
                 data += std::accumulate(addresses.begin() + 1, addresses.end(), std::to_string(addresses[0]),
                         [](const std::string &a, int b) { return a + "," + std::to_string(b); });
@@ -286,6 +320,7 @@ void POWNode::advertiseAddresses(POWMessage *msg) {
             EV << "Cannot advertise to nonexistant peer " << adTarget << std::endl;
         }
     }
+    scheduleAddrAd(adTarget);
 
 }
 
@@ -317,6 +352,32 @@ void POWNode::handleSelfMessage(POWMessage *msg) {
     }
 }
 
+void POWNode::dumpAddresses(POWMessage *msg) {
+    // probably could optimize to just write new addresses but that's complicated
+    // TODO: determine if we need to do banlist stuff
+    EV << "Dumping known addresses for node " << getIndex() << std::endl;
+    std::ofstream fileWriter(addressesFile, std::ios::out | std::ios::trunc);
+    if (fileWriter) {
+        EV << "File opened for writing successfully" << std::endl;
+        auto addrs = addrMan->allAddresses();
+        EV << "Writing " << addrs.size() << " to file." << std::endl;
+        int i = 0;
+        for (auto it = addrs.begin(); it != addrs.end(); ++it) {
+            fileWriter << std::to_string(*it);
+            if (i++ != addrs.size() - 1) {
+                fileWriter << ",";
+            }
+        }
+        fileWriter.flush();
+        fileWriter.close();
+    } else {
+        EV << "Data file could not be written to." << std::endl;
+    }
+    scheduleAt(simTime() + dumpAddressesInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_DUMP_ADDRS, ""));
+}
+#endif
+
+#if(1) // handle incoming messages from peers
 void POWNode::handleMessage(cMessage *msg) {
     POWMessage *powMessage = check_and_cast<POWMessage *>(msg);
     logReceivedMessage(powMessage);
@@ -342,8 +403,10 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
         sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_REJECT_COMMAND, "reason=obsolete,disconnect=true"), sourceNode);
         disconnectNode(sourceNode);
     } else {
+        std::string bubbleMessage = "Received valid version message from " + std::to_string(sourceNode);
+        bubble(bubbleMessage.c_str());
         bool sourceInbound = peers[sourceNode]->flags.test(Inbound);
-        // TODO: BTC stores starting height of incoming node
+        // TODO: store starting height of incoming node
         if (sourceInbound) {
             EV << "Sending node version message to inbound peer " << sourceNode << std::endl;
             sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_NODE_VERSION_COMMAND, ""), sourceNode);
@@ -355,29 +418,41 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
         sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_VERACK_COMMAND, ""), sourceNode);
 
         if (!sourceInbound) {
-            // TODO: BTC does a check for listen flag and not isInitialBlockDownload
+            EV << "Adding self address " << meNode << " to addresses to be sent to outbound peer " << sourceNode << std::endl;
+            // TODO: check for listen flag and not isInitialBlockDownload
             peers[sourceNode]->addressesToBeSent.insert(meNode);
 
-            // TODO: BTC defines an ideal number of addresses
+            EV << "Sending addresses request on outbound connection." << std::endl;
+            // TODO: check for ideal number of addresses
             sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_GETADDR_COMMAND, ""), sourceNode);
             peers[sourceNode]->flags.set(HasGetAddr);
         }
-         // TODO: BTC marks the address as good
+         // TODO: mark the address as good
     }
 }
 
 void POWNode::handleVerackMessage(POWMessage *msg) {
     int sourceIndex = msg->getSource();
-    EV << "Handling verack message from peer " << sourceIndex << std::endl;
+    std::string connectionType = "inbound";
     if (!peers[sourceIndex]->flags.test(Inbound))  {
-        // TODO: BTC marks the node's state with the currently connected flag, so the timestamp is updated later
+        // TODO: mark the node's state with the currently connected flag, so the timestamp is updated later
+        connectionType = "outbound";
+    } else {
+        // if this is an inbound connection it might be from a node we didn't know about before
+        addrMan->addAddress(sourceIndex);
     }
+    std::string bubbleMessage = "Handling verack message from " + connectionType + " peer " + std::to_string(sourceIndex);
+    bubble(bubbleMessage.c_str());
+    EV << "Handling verack message from " << connectionType << " peer " << sourceIndex << std::endl;
     EV << "Marking peer " << sourceIndex << " as successfully connected." << std::endl;
     peers[msg->getSource()]->flags.set(SuccessfullyConnected);
 }
 
 void POWNode::handleRejectMessage(POWMessage *msg) {
     std::string msgData = msg->getData();
+    int source = msg->getSource();
+    std::string bubbleMessage = "Received reject message from " + std::to_string(source) + " containing data: " + msgData;
+    bubble(bubbleMessage.c_str());
     if (msgData.empty()) {
         EV << "Invalid reject message.  Message must contain data." << std::endl;
     } else {
@@ -389,8 +464,49 @@ void POWNode::handleRejectMessage(POWMessage *msg) {
     }
 }
 
+void POWNode::relayAddress(int address) {
+    // NOTE: BTC does some hashing nonsense to determine the best nodes to send to, but we'll just pick two random ones
+    EV << "Relaying addresses" << std::endl;
+    for (int a : addrMan->getRandomAddresses()) {
+        peers[a]->addressesToBeSent.insert(address);
+    }
+}
+
+void POWNode::handleAddrMessage(POWMessage *msg) {
+    int messageSource = msg->getSource();
+    std::string bubbleMessage = "handling addr message from peer " + std::to_string(messageSource) + " containing data " + msg->getData();
+    bubble(bubbleMessage.c_str());
+    EV << "Handling addr message from peer " << messageSource << std::endl;
+    std::vector<int> newAddresses = getMessageDataVector(msg, "addresses");
+    if (newAddresses.size() > maxAddrAd) {
+        // TODO: mark peer as misbehaving
+        return;
+    }
+    EV << "Received addresses: " << newAddresses.size() << " from node " << messageSource << std::endl;
+    std::vector<int> okAddresses;
+    for (int addr : newAddresses) {
+        peers[messageSource]->knownAddresses.insert(addr);
+
+        // NOTE: BTC checks if the address' time stamp <= 100000000 or if it is greater than 10 minutes from now
+
+        // NOTE: BTC does a timestamp comparison, checks if the source has sent a getaddr message, checks the size of the addresses vector,
+        // and checks if the address is routable
+        // we'll only worry about the relay size
+        if (newAddresses.size() < addrRelayVecSize) {
+            relayAddress(addr);
+        }
+        okAddresses.push_back(addr);
+    }
+    if (newAddresses.size() < maxAddrAd) {
+        peers[messageSource]->flags.set(HasGetAddr, false);
+    }
+    addrMan->addAddresses(okAddresses);
+}
+
 void POWNode::handleGetAddrMessage(POWMessage *msg) {
     int messageSource = msg->getSource();
+    std::string bubbleMessage = "Handling get_addr message from " + std::to_string(messageSource);
+    bubble(bubbleMessage.c_str());
     EV << "Handling getaddr message from peer " << messageSource << std::endl;
     if (!peers[messageSource]->flags.test(Inbound)) {
         EV << "Ignoring getaddr message from outbound connection peer " << messageSource << std::endl;
@@ -410,13 +526,28 @@ void POWNode::handleGetAddrMessage(POWMessage *msg) {
         peers[messageSource]->addressesToBeSent.insert(*it);
     }
 }
+#endif
+
+#if(1) // utility functions
+std::vector<int> POWNode::getMessageDataVector(const POWMessage *msg, const std::string &vectorName) const {
+    auto dataMap = dataToMap(msg->getData());
+    return stringAsVector(dataMap[vectorName]);
+}
+
+std::vector<int> POWNode::stringAsVector(const std::string &vector) const {
+    return cStringTokenizer(vector.c_str(), ",").asIntVector();
+}
 
 std::map<std::string, std::string> POWNode::dataToMap(const std::string &messageData) const {
     cStringTokenizer tokenizer(messageData.c_str(), ",");
     std::map<std::string, std::string> result;
     while (tokenizer.hasMoreTokens()) {
         cStringTokenizer miniToken(tokenizer.nextToken(), "=");
-        result.insert(std::make_pair<std::string,std::string>(miniToken.nextToken(), miniToken.nextToken()));
+        std::string first = miniToken.nextToken();
+        std::string second = miniToken.nextToken();
+        auto pair = std::make_pair<std::string&,std::string&>(first, second);
+        EV_DETAIL << "Resulting pair in map: first = \"" << pair.first << "\", second = \"" << pair.second  << "\"" << std::endl;
+        result.insert(pair);
     }
     return result;
 }
@@ -440,3 +571,29 @@ void POWNode::sendToNode(POWMessage *msg, int nodeIndex) {
         EV << "Node " << nodeIndex << " not found.  Message not sent." << std::endl;
     }
 }
+
+
+bool POWNode::isOnline() const {
+    return par("online").boolValue();
+}
+
+bool POWNode::checkMessageInScope(POWMessage *msg) {
+    std::string messageName = msg->getName();
+    if (messageGen->messageInScope(messageName, PreVersion)) {
+        return true;
+    }
+    // need to check if we have a version for the incoming node
+    int nodeSource = msg->getSource();
+    if (peers[nodeSource]->version == 0) {
+        // TODO: set misbehavior score?
+        return false;
+    }
+    if (!messageGen->messageInScope(messageName, PreVerack)) {
+        if (!peers[nodeSource]->flags[SuccessfullyConnected]) {
+            // TODO: set misbehavior score
+            return false;
+        }
+    }
+    return true;
+}
+#endif

@@ -60,6 +60,16 @@ private:
      */
     void internalInitialize();
 
+    /*! Read addresses from data/<index>.dat
+     *
+     */
+    void readAddresses();
+
+    /*! One time initial scheduling of self messages (message handler, dump addresses, etc)
+     *
+     */
+    void scheduleSelfMessages();
+
     /*! Read NED parameters that will not change during the simulation.
      *
      */
@@ -108,6 +118,11 @@ private:
      */
     void handleGetAddrMessage(POWMessage *msg);
 
+    /*! Handle an incoming address advertisement.
+     * \param msg Message to handle.  Contains a set of addresses
+     */
+    void handleAddrMessage(POWMessage *msg);
+
     /*! Print information upon receiving a message.
      * \param msg Message to log.
      */
@@ -125,11 +140,41 @@ private:
      */
     std::map<std::string, std::string> dataToMap(const std::string &messageData) const;
 
+    /*! Utility function to get a vector of integers defined by a data parameter.
+     * \param msg Message to get data from.
+     * \param vectorName Name of data parameter to convert into vector.
+     * \returns Vector containing the integers in the parameter
+     */
+    std::vector<int> getMessageDataVector(const POWMessage *msg, const std::string &vectorName) const;
+
+    /*! Convenience function to convert string of i,j,... to a vector of ints
+     * \param vector String to convert from
+     * \returns Vector containing the integers in the parameter
+     */
+    std::vector<int> stringAsVector(const std::string &vector) const;
+
+    template<typename T>
+    std::string vectorAsString(const std::vector<T> &vector) const {
+        std::stringstream buf;
+        for (int i = 0; i < vector.size(); ++i) {
+            buf << std::to_string(vector[i]);
+            if (i != vector.size() - 1) {
+                buf << ",";
+            }
+        }
+        return buf.str();
+    }
+
     /*! "Thread" that checks peers' incoming and outgoing message queues.
      * Calls processIncomingMessages and sendOutgoingMessages for each peer.
      * \param msg Message that initiated the check.  Not used (only here to work with the handler map)
      */
     void messageHandler(POWMessage *msg);
+
+    /*! Dump addresses.  Called at a specified interval.
+     * \param msg Message that initiated the address dump.
+     */
+    void dumpAddresses(POWMessage *msg);
 
     /*! "Thread" that advertises address to the peer specified by the message.
      * \param msg Message carrying index of peer to advertise addresses to.
@@ -179,6 +224,11 @@ private:
      */
     void scheduleAddrAd(int peerIndex);
 
+    /*! Send the address to a random subselection of peers.
+     * \param address Address to relay.
+     */
+    void relayAddress(int address);
+
     std::map<std::string, std::function<void(POWNode &, POWMessage *)> > messageHandlers;
     // these are kept separate because self messages are processed immediately
     std::map<std::string, std::function<void(POWNode &, POWMessage *)> > selfMessageHandlers;
@@ -189,6 +239,11 @@ private:
     int maxMessageProcess;
     int addrSendInterval;
     int maxAddrAd;
+    int numAddrRelay;
+    int addrRelayVecSize;
+    int dumpAddressesInterval;
+    double randomAddressFraction;
+    std::vector<int> defaultNodes;
     std::unique_ptr<MessageGenerator> messageGen;
     // maintain data known about each peer
     std::map<int, std::unique_ptr<POWNodeData> > peers;
@@ -196,6 +251,8 @@ private:
     std::queue<int> peersProcess; // make sure nodes are processed fairly
     int threadScheduleInterval;
     int currentMessagesProcessed;  // counter for number of messages that have been processed in one loop
+    std::string addressesFile;
+    std::string dataDir;
 };
 
 Define_Module(POWNode)
