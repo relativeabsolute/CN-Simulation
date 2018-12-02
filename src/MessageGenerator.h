@@ -28,10 +28,12 @@ public:
     static constexpr const char *MESSAGE_CHECK_QUEUES = "checkqueues"; // self message to simulate BTC's threading.  does not need a scope
     static constexpr const char *MESSAGE_ADVERTISE_ADDRESSES = "advertiseaddrs";
     static constexpr const char *MESSAGE_DUMP_ADDRS = "dumpaddr";
+    static constexpr const char *MESSAGE_POLL_ADDRS = "polladdrs";
     static constexpr const char *MESSAGE_NODE_VERSION_COMMAND = "nodeversion";
     static constexpr const char *MESSAGE_REJECT_COMMAND = "reject";
     static constexpr const char *MESSAGE_VERACK_COMMAND = "verack";
     static constexpr const char *MESSAGE_GETADDR_COMMAND = "getaddr";
+    static constexpr const char *MESSAGE_ADDRS_COMMAND = "addrs";
     static constexpr const char *MESSAGE_ADDR_COMMAND = "addr";
 
     explicit MessageGenerator(int versionNo) : versionNo(versionNo) {
@@ -60,6 +62,7 @@ private:
         messageScopes.insert(std::make_pair(MESSAGE_VERACK_COMMAND, "10")); // verack accepted after version command
         messageScopes.insert(std::make_pair(MESSAGE_REJECT_COMMAND, "11")); // reject can be sent at any time
         messageScopes.insert(std::make_pair(MESSAGE_GETADDR_COMMAND, "00"));  // get addr sent in response to version
+        messageScopes.insert(std::make_pair(MESSAGE_ADDRS_COMMAND, "00"));  // addrs sent in response to get addr, so same scope
     }
 
     int versionNo;

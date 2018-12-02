@@ -31,13 +31,13 @@ enum POWNodeFlags {
 struct POWNodeData {
     /*! Contains addresses of peers to be advertised to the peer.
      */
-    std::set<int> addressesToBeSent;
+    // std::set<int> addressesToBeSent;
 
     std::deque<POWMessage *> incomingMessages;
 
     std::bitset<NumFlags> flags;
 
-    std::set<int> knownAddresses;
+    // std::set<int> knownAddresses
 
     int version;
 };

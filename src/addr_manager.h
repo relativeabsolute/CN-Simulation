@@ -27,9 +27,10 @@ public:
 
     std::set<int> allAddresses() const;
 
-    void addAddress(int newAddress);
+    void addAddress(int newAddress, bool update = true);
     void addAddresses(const std::vector<int> &newAddresses);
 private:
+    void updateSize();
     double addressFraction;
     std::set<int> addresses;
     size_t numRandomAddresses;

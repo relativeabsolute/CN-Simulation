@@ -77,19 +77,21 @@ void POWNode::connectTo(int otherIndex, POWNode *other) {
     EV << otherIndex << " to " << meIndex << " connection type: inbound" << std::endl;
     other->addNodeToGateMapping(meIndex, destGateOut, true);
 
-    // schedule address advertisement to the peer
-    scheduleAddrAd(otherIndex);
+    // BTC schedules proactive address advertisements, but we are going to use a polling approach
+    // scheduleAddrAd(otherIndex);
 }
 
 void POWNode::setupMessageHandlers() {
     selfMessageHandlers[MessageGenerator::MESSAGE_CHECK_QUEUES] = &POWNode::messageHandler;
     selfMessageHandlers[MessageGenerator::MESSAGE_ADVERTISE_ADDRESSES] = &POWNode::advertiseAddresses;
     selfMessageHandlers[MessageGenerator::MESSAGE_DUMP_ADDRS] = &POWNode::dumpAddresses;
+    selfMessageHandlers[MessageGenerator::MESSAGE_POLL_ADDRS] = &POWNode::pollAddresses;
 
     messageHandlers[MessageGenerator::MESSAGE_NODE_VERSION_COMMAND] = &POWNode::handleNodeVersionMessage;
     messageHandlers[MessageGenerator::MESSAGE_VERACK_COMMAND] = &POWNode::handleVerackMessage;
     messageHandlers[MessageGenerator::MESSAGE_REJECT_COMMAND] = &POWNode::handleRejectMessage;
     messageHandlers[MessageGenerator::MESSAGE_GETADDR_COMMAND] = &POWNode::handleGetAddrMessage;
+    messageHandlers[MessageGenerator::MESSAGE_ADDRS_COMMAND] = &POWNode::handleAddrsMessage;
 }
 
 void POWNode::internalInitialize() {
@@ -155,6 +157,9 @@ void POWNode::readConstantParameters() {
 void POWNode::scheduleSelfMessages() {
     scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_CHECK_QUEUES, ""));
     scheduleAt(simTime() + dumpAddressesInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_DUMP_ADDRS, ""));
+
+    // initial address poll delayed to allow initial connections to be built up
+    scheduleAt(simTime() + 2 * threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_POLL_ADDRS, ""));
 }
 
 void POWNode::initialize() {
@@ -180,15 +185,18 @@ void POWNode::initialize() {
 
 void POWNode::broadcastMessage(POWMessage *msg, std::function<bool(int)> predicate) {
     EV << "Broadcasting " << msg << std::endl;
+    int successCounter = 0;
     for (auto mapIterator = nodeIndexToGateMap.begin(); mapIterator != nodeIndexToGateMap.end(); ++mapIterator) {
         // it->first is the index of the destination node
         // it->second is the gate index to send over
         if (predicate(mapIterator->first)) {
+            ++successCounter;
             cMessage *copy = msg->dup();
             send(copy, mapIterator->second);
         }
     }
     delete msg;
+    EV << "Message broadcasted to " << successCounter << " of " << nodeIndexToGateMap.size() << " peers." << std::endl;
 }
 #endif
 
@@ -271,6 +279,14 @@ bool POWNode::processIncomingMessages(int peerIndex) {
     return moreWork;
 }
 
+void POWNode::pollAddresses(POWMessage *msg) {
+    int meIndex = getIndex();
+    EV << "Polling successfully connected peers for connections." << std::endl;
+    broadcastMessage(messageGen->generateMessage(meIndex, MessageGenerator::MESSAGE_GETADDR_COMMAND, ""),
+            [&, this](int peer){ return this->peers[peer]->flags.test(SuccessfullyConnected); });
+    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(meIndex, MessageGenerator::MESSAGE_POLL_ADDRS, ""));
+}
+
 void POWNode::scheduleAddrAd(int peerIndex) {
     std::string data = "peerIndex=" + std::to_string(peerIndex);
     // same interval as threadSchedule since BTC does this task as part of that thread
@@ -278,6 +294,7 @@ void POWNode::scheduleAddrAd(int peerIndex) {
 }
 
 void POWNode::advertiseAddresses(POWMessage *msg) {
+    /*
     // data is form peerIndex=<index>
     EV << "Performing scheduled address advertisement.  Message that triggered this: " << msg->getFullName() << std::endl;
     EV_DETAIL << "Message data: " << msg->getData() << std::endl;
@@ -321,7 +338,7 @@ void POWNode::advertiseAddresses(POWMessage *msg) {
         }
     }
     scheduleAddrAd(adTarget);
-
+    */
 }
 
 void POWNode::messageHandler(POWMessage *msg) {
@@ -388,6 +405,7 @@ void POWNode::handleMessage(cMessage *msg) {
     } else {
         int source = powMessage->getSource();
         EV << "Adding message to queue for peer " << source << std::endl;
+        EV_DETAIL << "Message data: " << powMessage->getData() << std::endl;
         peers[source]->incomingMessages.push_back(powMessage);
         // don't delete here because the message needs to be processed
     }
@@ -417,6 +435,7 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
 
         sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_VERACK_COMMAND, ""), sourceNode);
 
+        /* BTC asks for addresses upon receiving version message, but we use a polling approach
         if (!sourceInbound) {
             EV << "Adding self address " << meNode << " to addresses to be sent to outbound peer " << sourceNode << std::endl;
             // TODO: check for listen flag and not isInitialBlockDownload
@@ -427,6 +446,7 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
             sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_GETADDR_COMMAND, ""), sourceNode);
             peers[sourceNode]->flags.set(HasGetAddr);
         }
+        */
          // TODO: mark the address as good
     }
 }
@@ -439,6 +459,7 @@ void POWNode::handleVerackMessage(POWMessage *msg) {
         connectionType = "outbound";
     } else {
         // if this is an inbound connection it might be from a node we didn't know about before
+        EV_DETAIL << "Adding peer " << sourceIndex << " to known indexes of peer " << getIndex() << std::endl;
         addrMan->addAddress(sourceIndex);
     }
     std::string bubbleMessage = "Handling verack message from " + connectionType + " peer " + std::to_string(sourceIndex);
@@ -466,13 +487,28 @@ void POWNode::handleRejectMessage(POWMessage *msg) {
 
 void POWNode::relayAddress(int address) {
     // NOTE: BTC does some hashing nonsense to determine the best nodes to send to, but we'll just pick two random ones
+    /* TODO: unsure if we should still relay addresses while polling
+     * or just poll more frequently
     EV << "Relaying addresses" << std::endl;
     for (int a : addrMan->getRandomAddresses()) {
         peers[a]->addressesToBeSent.insert(address);
     }
+    */
+}
+
+void POWNode::handleAddrsMessage(POWMessage *msg) {
+    int messageSource = msg->getSource();
+    std::string bubbleMessage = "handling addrs message from peer: " + std::to_string(messageSource) + " containing data " + msg->getData();
+    bubble(bubbleMessage.c_str());
+    EV << "Handling addrs message from peer " << messageSource << std::endl;
+    std::vector<int> newAddresses = getMessageDataVector(msg, "addresses");
+    EV << "Received " << newAddresses.size() << " addresses from node " << messageSource << std::endl;
+    // TODO: attempt to connect to some if not all of the new peers
+    addrMan->addAddresses(newAddresses);
 }
 
 void POWNode::handleAddrMessage(POWMessage *msg) {
+    /* see handleAddrsMessage (we are using a polling approach)
     int messageSource = msg->getSource();
     std::string bubbleMessage = "handling addr message from peer " + std::to_string(messageSource) + " containing data " + msg->getData();
     bubble(bubbleMessage.c_str());
@@ -501,6 +537,7 @@ void POWNode::handleAddrMessage(POWMessage *msg) {
         peers[messageSource]->flags.set(HasGetAddr, false);
     }
     addrMan->addAddresses(okAddresses);
+    */
 }
 
 void POWNode::handleGetAddrMessage(POWMessage *msg) {
@@ -508,46 +545,69 @@ void POWNode::handleGetAddrMessage(POWMessage *msg) {
     std::string bubbleMessage = "Handling get_addr message from " + std::to_string(messageSource);
     bubble(bubbleMessage.c_str());
     EV << "Handling getaddr message from peer " << messageSource << std::endl;
+    /* BTC only allows getaddr messages on inbound connections to prevent fingerprinting attacks
+     * but we can ignore that herer
     if (!peers[messageSource]->flags.test(Inbound)) {
         EV << "Ignoring getaddr message from outbound connection peer " << messageSource << std::endl;
         return;
     }
+    */
 
+    /* Bitcoin ignores repeated getaddr messages, but we are using a polling approach
     if (peers[messageSource]->flags.test(HasSentAddr)) {
         EV << "Ignoring repeated getaddr message from peer " << messageSource << std::endl;
         return;
     }
     peers[messageSource]->flags.set(HasSentAddr);
+    */
 
+    /* with polling approach, we just send addresses as soon as they are requested, instead of putting them on a queue to be sent later
     peers[messageSource]->addressesToBeSent.clear();
     auto pushAddresses = addrMan->getRandomAddresses();
     EV << "Adding " << pushAddresses.size() << " addresses to be sent to node " << messageSource << std::endl;
     for (auto it = pushAddresses.begin(); it != pushAddresses.end(); ++it) {
         peers[messageSource]->addressesToBeSent.insert(*it);
     }
+    */
+    auto addresses = addrMan->getRandomAddresses();
+    EV_DETAIL << "Sending addresses " << vectorAsString(addresses) << " to peer " << messageSource << std::endl;
+    sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_ADDRS_COMMAND,
+            "addresses=" + vectorAsString(addresses)), messageSource);
 }
 #endif
 
 #if(1) // utility functions
 std::vector<int> POWNode::getMessageDataVector(const POWMessage *msg, const std::string &vectorName) const {
+    EV_DETAIL << "Getting message data vector for parameter \'" << vectorName << "\' from message " << msg << std::endl;
     auto dataMap = dataToMap(msg->getData());
+    EV_DETAIL << "Data map assigned." << std::endl;
     return stringAsVector(dataMap[vectorName]);
 }
 
 std::vector<int> POWNode::stringAsVector(const std::string &vector) const {
+    EV_DETAIL << "stringAsVector, source string = " << vector << std::endl;
     return cStringTokenizer(vector.c_str(), ",").asIntVector();
 }
 
 std::map<std::string, std::string> POWNode::dataToMap(const std::string &messageData) const {
+    EV_DETAIL << "dataToMap, messageData=" << messageData << std::endl;
     cStringTokenizer tokenizer(messageData.c_str(), ",");
+    EV_DETAIL << "tokenizer constructed." << std::endl;
     std::map<std::string, std::string> result;
     while (tokenizer.hasMoreTokens()) {
         cStringTokenizer miniToken(tokenizer.nextToken(), "=");
-        std::string first = miniToken.nextToken();
-        std::string second = miniToken.nextToken();
-        auto pair = std::make_pair<std::string&,std::string&>(first, second);
-        EV_DETAIL << "Resulting pair in map: first = \"" << pair.first << "\", second = \"" << pair.second  << "\"" << std::endl;
-        result.insert(pair);
+        EV_DETAIL << "minitokenizer constructed." << std::endl;
+        if (miniToken.hasMoreTokens()) {
+            std::string first = miniToken.nextToken();
+            EV_DETAIL << "first token added." << std::endl;
+            if (miniToken.hasMoreTokens()) {
+                std::string second = miniToken.nextToken();
+                EV_DETAIL << "second token added." << std::endl;
+                auto pair = std::make_pair<std::string&,std::string&>(first, second);
+                EV_DETAIL << "Resulting pair in map: first = \"" << pair.first << "\", second = \"" << pair.second  << "\"" << std::endl;
+                result.insert(pair);
+            }
+        }
     }
     return result;
 }

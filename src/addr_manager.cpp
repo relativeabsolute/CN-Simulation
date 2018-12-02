@@ -16,7 +16,7 @@ std::vector<int> AddrManager::getRandomAddresses(int n) {
         n = numRandomAddresses;
     }
 
-    std::vector<int> result(addresses.size());
+    std::vector<int> result;
     std::copy(addresses.begin(), addresses.end(), std::back_inserter(result));
     std::random_shuffle(result.begin(), result.end());
 
@@ -28,15 +28,23 @@ std::set<int> AddrManager::allAddresses() const {
 }
 
 AddrManager::AddrManager(double fraction) : addressFraction(fraction) {
-    numRandomAddresses = (size_t)ceil(addresses.size() * fraction);
+    updateSize();
 }
 
-void AddrManager::addAddress(int newAddress) {
+void AddrManager::addAddress(int newAddress, bool update) {
     addresses.insert(newAddress);
+    if (update) {
+        updateSize();
+    }
 }
 
 void AddrManager::addAddresses(const std::vector<int> &newAddresses) {
     for (int address : newAddresses) {
-        addAddress(address);
+        addAddress(address, false);
     }
+    updateSize();
+}
+
+void AddrManager::updateSize() {
+    numRandomAddresses = (size_t)ceil(addresses.size() * addressFraction);
 }

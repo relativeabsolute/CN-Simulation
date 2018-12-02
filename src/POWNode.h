@@ -123,6 +123,11 @@ private:
      */
     void handleAddrMessage(POWMessage *msg);
 
+    /*! Handler for half of address polling interface.  Handles receiving addresses from a peer.
+     * \param msg Message to handle.  Contains a set of addresses that we asked for.
+     */
+    void handleAddrsMessage(POWMessage *msg);
+
     /*! Print information upon receiving a message.
      * \param msg Message to log.
      */
@@ -185,6 +190,11 @@ private:
      * Calls the message's appropriate handler, if one exists.
      */
     void processMessage(POWMessage *msg);
+
+    /*! Ask currently connected peers for their known addresses
+     *
+     */
+    void pollAddresses(POWMessage *msg);
 
     /*! Process the given peer's incoming messages.
      * \param peerIndex Index of peer to process messages of.
