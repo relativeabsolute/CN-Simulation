@@ -18,6 +18,7 @@ package p2p_sim.simulations;
 simple POWNode extends P2PNode {
     parameters:
         string defaultNodeList;
+        bool newNetwork;
         string dataDir = default("data");
         bool online = default(true);
         int version = default(1);

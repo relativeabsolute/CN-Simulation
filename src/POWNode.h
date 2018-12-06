@@ -229,6 +229,11 @@ private:
      */
     void connectTo(int otherIndex, POWNode *other);
 
+    /*! Add connections to addresses received from an ADDRS message.
+     * \param newAddresses Vector containing addresses of new peers.
+     */
+    void dynamicConnect(const std::vector<int> &newAddresses);
+
     /*! Schedule an address advertisement to the given peer.  The advertisement is poisson-distributed according to lambda = threadScheduleInterval.
      * \param peerIndex index of peer to send ad to.
      */
@@ -238,6 +243,11 @@ private:
      * \param address Address to relay.
      */
     void relayAddress(int address);
+
+    POWNode *getPeerNodeByPath(int address) {
+        std::string nodePath = "node[" + std::to_string(address) + "]";
+        return check_and_cast<POWNode*>(getModuleByPath(nodePath.c_str()));
+    }
 
     std::map<std::string, std::function<void(POWNode &, POWMessage *)> > messageHandlers;
     // these are kept separate because self messages are processed immediately
@@ -253,6 +263,7 @@ private:
     int addrRelayVecSize;
     int dumpAddressesInterval;
     double randomAddressFraction;
+    bool newNetwork;
     std::vector<int> defaultNodes;
     std::unique_ptr<MessageGenerator> messageGen;
     // maintain data known about each peer

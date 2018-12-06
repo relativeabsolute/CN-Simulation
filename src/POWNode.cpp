@@ -37,18 +37,14 @@ void POWNode::addNodeToGateMapping(int nodeIndex, cGate *gate, bool inboundValue
 void POWNode::initConnections() {
     EV << "Initializing POWNode." << std::endl;
 
-    //const size_t pathStrSize = 6; // node + [ + ]
-    //char *path = new char[defaultNodes.size() + pathStrSize];
-    std::string nodePath;
     int meIndex = getIndex();
     // only connect if we are online and we are not a default node
     if (isOnline() && std::find(defaultNodes.begin(), defaultNodes.end(), meIndex) == defaultNodes.end()) {
         for (int addr : addrMan->allAddresses()) {
             if (addr != meIndex) {
                 EV << "Attempting to connect from " << meIndex << " to " << addr << std::endl;
-                nodePath = "node[" + std::to_string(addr) + "]";
                 //sprintf(path, "node[%d]", addr);
-                POWNode *toCheck = check_and_cast<POWNode*>(getModuleByPath(nodePath.c_str()));
+                POWNode *toCheck = getPeerNodeByPath(addr);
                 if (!toCheck->isOnline()) {
                     EV << "Node " << addr << " is not online.  Moving onto next node." << std::endl;
                 } else {
@@ -62,6 +58,10 @@ void POWNode::initConnections() {
 
 void POWNode::connectTo(int otherIndex, POWNode *other) {
     int meIndex = getIndex();
+    if (otherIndex == meIndex) {
+        // don't connect to ourselves
+        return;
+    }
     // TODO: put limit on number of gates/connections?
     cGate *destGateIn, *destGateOut;
     other->getOrCreateFirstUnconnectedGatePair("gate", false, true, destGateIn, destGateOut);
@@ -76,6 +76,9 @@ void POWNode::connectTo(int otherIndex, POWNode *other) {
     destGateOut->connectTo(srcGateIn);
     EV << otherIndex << " to " << meIndex << " connection type: inbound" << std::endl;
     other->addNodeToGateMapping(meIndex, destGateOut, true);
+
+    std::string bubbleMessage = "Connection established with peer " + std::to_string(otherIndex);
+    bubble(bubbleMessage.c_str());
 
     // BTC schedules proactive address advertisements, but we are going to use a polling approach
     // scheduleAddrAd(otherIndex);
@@ -116,7 +119,7 @@ void POWNode::internalInitialize() {
 
 void POWNode::readAddresses() {
     std::vector<int> addresses;
-    if (!fs::exists(addressesFile)) {
+    if (newNetwork || !fs::exists(addressesFile)) {
         EV << "Addresses file " << addressesFile << " for node " << getIndex() << " does not exist.  Reading default nodes." << std::endl;
         addresses.assign(defaultNodes.begin(), defaultNodes.end());
     } else {
@@ -146,10 +149,11 @@ void POWNode::readConstantParameters() {
     addrRelayVecSize = par("addrRelayVecSize").intValue();
     dumpAddressesInterval = par("dumpAddressesInterval").intValue();
     dataDir = par("dataDir").stringValue();
-    addressesFile = (fs::path(dataDir) / (std::to_string(getIndex()) + ".txt")).string();
+    addressesFile = (fs::path(dataDir) / ("peers" + std::to_string(getIndex()) + ".txt")).string();
     const char *defaultNodesStr = par("defaultNodeList").stringValue();
     defaultNodes = cStringTokenizer(defaultNodesStr).asIntVector();
     randomAddressFraction = par("randomAddressFraction").doubleValue();
+    newNetwork = par("newNetwork").boolValue();
 
     messageGen = std::make_unique<MessageGenerator>(versionNumber);
 }
@@ -418,7 +422,7 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
     if (sourceVersionNo < minAcceptedVersionNumber) {
         // disconnect from nodes that are too old
         EV << "Node " << sourceNode << " using obsolete protocol version.  Minimum accepted version is " << minAcceptedVersionNumber << std::endl;
-        sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_REJECT_COMMAND, "reason=obsolete,disconnect=true"), sourceNode);
+        sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_REJECT_COMMAND, "reason=obsolete;disconnect=true"), sourceNode);
         disconnectNode(sourceNode);
     } else {
         std::string bubbleMessage = "Received valid version message from " + std::to_string(sourceNode);
@@ -504,6 +508,7 @@ void POWNode::handleAddrsMessage(POWMessage *msg) {
     std::vector<int> newAddresses = getMessageDataVector(msg, "addresses");
     EV << "Received " << newAddresses.size() << " addresses from node " << messageSource << std::endl;
     // TODO: attempt to connect to some if not all of the new peers
+    dynamicConnect(newAddresses);
     addrMan->addAddresses(newAddresses);
 }
 
@@ -584,6 +589,23 @@ std::vector<int> POWNode::getMessageDataVector(const POWMessage *msg, const std:
     return stringAsVector(dataMap[vectorName]);
 }
 
+void POWNode::dynamicConnect(const std::vector<int> &newAddresses) {
+    EV << "Dynamically connecting to new addresses." << std::endl;
+    EV_DETAIL << "Addresses before checking for connections: " << vectorAsString(newAddresses) << std::endl;
+    std::vector<int> toAdd;
+    std::remove_copy_if(newAddresses.begin(), newAddresses.end(),
+            std::back_inserter(toAdd), [&, this](int peer){ return this->nodeIndexToGateMap.find(peer) != this->nodeIndexToGateMap.end(); });
+    EV_DETAIL << "Addresses after checking for connections: " << vectorAsString(toAdd) << std::endl;
+    // connect to half the peers to even out the number of inbound and outbound connections for each node
+    int newCount = 0;
+    for (int i = 0; i < toAdd.size() / 2; ++i) {
+        ++newCount;
+        int otherIndex = toAdd[i];
+        connectTo(otherIndex, getPeerNodeByPath(otherIndex));
+    }
+    EV_DETAIL << "Dynamically connected to " << newCount << " of " << newAddresses.size() << " advertised peers." << std::endl;
+}
+
 std::vector<int> POWNode::stringAsVector(const std::string &vector) const {
     EV_DETAIL << "stringAsVector, source string = " << vector << std::endl;
     return cStringTokenizer(vector.c_str(), ",").asIntVector();
@@ -591,7 +613,7 @@ std::vector<int> POWNode::stringAsVector(const std::string &vector) const {
 
 std::map<std::string, std::string> POWNode::dataToMap(const std::string &messageData) const {
     EV_DETAIL << "dataToMap, messageData=" << messageData << std::endl;
-    cStringTokenizer tokenizer(messageData.c_str(), ",");
+    cStringTokenizer tokenizer(messageData.c_str(), ";");
     EV_DETAIL << "tokenizer constructed." << std::endl;
     std::map<std::string, std::string> result;
     while (tokenizer.hasMoreTokens()) {
