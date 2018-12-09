@@ -60,6 +60,8 @@ private:
      */
     void internalInitialize();
 
+    void initBlockchain();
+
     /*! Read addresses from data/<index>.dat
      *
      */

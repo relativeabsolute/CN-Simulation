@@ -117,6 +117,11 @@ void POWNode::internalInitialize() {
     readAddresses();
 }
 
+void POWNode::initBlockchain() {
+    EV << "Loading block chain" << std::endl;
+
+}
+
 void POWNode::readAddresses() {
     std::vector<int> addresses;
     if (newNetwork || !fs::exists(addressesFile)) {
