@@ -203,18 +203,21 @@ SchedulerMessage& SchedulerMessage::operator=(const SchedulerMessage& other)
 void SchedulerMessage::copy(const SchedulerMessage& other)
 {
     this->parameters = other.parameters;
+    this->method = other.method;
 }
 
 void SchedulerMessage::parsimPack(omnetpp::cCommBuffer *b) const
 {
     ::omnetpp::cMessage::parsimPack(b);
     doParsimPacking(b,this->parameters);
+    doParsimPacking(b,this->method);
 }
 
 void SchedulerMessage::parsimUnpack(omnetpp::cCommBuffer *b)
 {
     ::omnetpp::cMessage::parsimUnpack(b);
     doParsimUnpacking(b,this->parameters);
+    doParsimUnpacking(b,this->method);
 }
 
 parametersVector& SchedulerMessage::getParameters()
@@ -225,6 +228,16 @@ parametersVector& SchedulerMessage::getParameters()
 void SchedulerMessage::setParameters(const parametersVector& parameters)
 {
     this->parameters = parameters;
+}
+
+const char * SchedulerMessage::getMethod() const
+{
+    return this->method.c_str();
+}
+
+void SchedulerMessage::setMethod(const char * method)
+{
+    this->method = method;
 }
 
 class SchedulerMessageDescriptor : public omnetpp::cClassDescriptor
@@ -292,7 +305,7 @@ const char *SchedulerMessageDescriptor::getProperty(const char *propertyname) co
 int SchedulerMessageDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 1+basedesc->getFieldCount() : 1;
+    return basedesc ? 2+basedesc->getFieldCount() : 2;
 }
 
 unsigned int SchedulerMessageDescriptor::getFieldTypeFlags(int field) const
@@ -305,8 +318,9 @@ unsigned int SchedulerMessageDescriptor::getFieldTypeFlags(int field) const
     }
     static unsigned int fieldTypeFlags[] = {
         FD_ISCOMPOUND,
+        FD_ISEDITABLE,
     };
-    return (field>=0 && field<1) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<2) ? fieldTypeFlags[field] : 0;
 }
 
 const char *SchedulerMessageDescriptor::getFieldName(int field) const
@@ -319,8 +333,9 @@ const char *SchedulerMessageDescriptor::getFieldName(int field) const
     }
     static const char *fieldNames[] = {
         "parameters",
+        "method",
     };
-    return (field>=0 && field<1) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<2) ? fieldNames[field] : nullptr;
 }
 
 int SchedulerMessageDescriptor::findField(const char *fieldName) const
@@ -328,6 +343,7 @@ int SchedulerMessageDescriptor::findField(const char *fieldName) const
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount() : 0;
     if (fieldName[0]=='p' && strcmp(fieldName, "parameters")==0) return base+0;
+    if (fieldName[0]=='m' && strcmp(fieldName, "method")==0) return base+1;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -341,8 +357,9 @@ const char *SchedulerMessageDescriptor::getFieldTypeString(int field) const
     }
     static const char *fieldTypeStrings[] = {
         "parametersVector",
+        "string",
     };
-    return (field>=0 && field<1) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<2) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **SchedulerMessageDescriptor::getFieldPropertyNames(int field) const
@@ -410,6 +427,7 @@ std::string SchedulerMessageDescriptor::getFieldValueAsString(void *object, int 
     SchedulerMessage *pp = (SchedulerMessage *)object; (void)pp;
     switch (field) {
         case 0: {std::stringstream out; out << pp->getParameters(); return out.str();}
+        case 1: return oppstring2string(pp->getMethod());
         default: return "";
     }
 }
@@ -424,6 +442,7 @@ bool SchedulerMessageDescriptor::setFieldValueAsString(void *object, int field, 
     }
     SchedulerMessage *pp = (SchedulerMessage *)object; (void)pp;
     switch (field) {
+        case 1: pp->setMethod((value)); return true;
         default: return false;
     }
 }

@@ -61,6 +61,8 @@ protected:
      */
     virtual void handleMessage(cMessage *msg) override;
 
+    virtual void refreshDisplay() const override;
+
     /*! Check if the node is online (would be handled by TCP timeouts in real network).  Connections will not be established with an offline node.
      * \returns True if the node is online and can be connected to, false otherwise.
      */
@@ -152,6 +154,8 @@ private:
     void handleTxMessage(POWMessage *msg);
 
     void handleGetBlocksMessage(POWMessage *msg);
+
+    void handleBlocksMessage(POWMessage *msg);
 
     /*! Handler for half of address polling interface.  Handles receiving addresses from a peer.
      * \param msg Message to handle.  Contains a set of addresses that we asked for.
@@ -299,6 +303,7 @@ private:
     std::string blocksDir;
     std::string dataDir;
     POWNodeState state;
+    int chainHeight;
 };
 
 Define_Module(POWNode)

@@ -29,6 +29,7 @@
  * message SchedulerMessage
  * {
  *     parametersVector parameters;
+ *     string method;
  * }
  * </pre>
  */
@@ -36,6 +37,7 @@ class SchedulerMessage : public ::omnetpp::cMessage
 {
   protected:
     parametersVector parameters;
+    ::omnetpp::opp_string method;
 
   private:
     void copy(const SchedulerMessage& other);
@@ -57,6 +59,8 @@ class SchedulerMessage : public ::omnetpp::cMessage
     virtual parametersVector& getParameters();
     virtual const parametersVector& getParameters() const {return const_cast<SchedulerMessage*>(this)->getParameters();}
     virtual void setParameters(const parametersVector& parameters);
+    virtual const char * getMethod() const;
+    virtual void setMethod(const char * method);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const SchedulerMessage& obj) {obj.parsimPack(b);}

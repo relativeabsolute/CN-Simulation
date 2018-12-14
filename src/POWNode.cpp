@@ -105,7 +105,9 @@ void POWNode::setupMessageHandlers() {
     messageHandlers[MessageGenerator::MESSAGE_TX_COMMAND] = &POWNode::handleTxMessage;
     messageHandlers[MessageGenerator::MESSAGE_GETBLOCKS_COMMAND] = &POWNode::handleGetBlocksMessage;
 
-    simulationScheduleHandlers[POWScheduler::SCHEDULER_MESSAGE_NEW_BLOCK] = &POWNode::handleNewBlock;
+    if (isMiner) {
+        simulationScheduleHandlers[POWScheduler::SCHEDULER_MESSAGE_NEW_BLOCK] = &POWNode::handleNewBlock;
+    }
     simulationScheduleHandlers[POWScheduler::SCHEDULER_MESSAGE_TX] = &POWNode::handleNewTx;
 }
 
@@ -137,6 +139,7 @@ void POWNode::initBlockchain() {
     if (newNetwork || !(blockchain = Blockchain::readFromDirectory(blocksDir))) {
         blockchain = Blockchain::emptyBlockchain(blocksPerFile);
     }
+    chainHeight = blockchain->chainHeight();
 }
 
 void POWNode::readAddresses() {
@@ -180,6 +183,9 @@ void POWNode::readConstantParameters() {
     blocksPerFile = par("blocksPerFile").intValue();
     auto minersList = cStringTokenizer(par("minersList").stringValue()).asIntVector();
     isMiner = std::find(minersList.begin(), minersList.end(), getIndex()) != minersList.end();
+    if (isMiner) {
+        EV << "Node " << getIndex() << " marked as miner" << std::endl;
+    }
     blockSyncRecency = par("blockSyncRecency").intValue();
     coinbaseOutput = par("coinbaseOutput").intValue();
 
@@ -255,15 +261,24 @@ void POWNode::sendOutgoingMessages(int peerIndex) {
 
 void POWNode::startBlockSync(int peerIndex) {
     if (!state.syncStarted) {
+        EV << "Starting block sync with peer " << peerIndex << std::endl;
         // request headers from a single peer, unless our best header is recent enough
-        auto bestHeader = blockchain->getTip();
+        std::shared_ptr<Block> bestHeader = nullptr;
+        if (blockchain->chainHeight() > 0) {
+            bestHeader = blockchain->getTip();
+        }
         if (state.numSyncs == 0 || bestHeader->getHeader().creationTime > simTime().inUnit(SimTimeUnit::SIMTIME_S) - blockSyncRecency) {
             state.syncStarted = true;
             state.numSyncs++;
-            if (bestHeader->prevBlock()) {
-                bestHeader = bestHeader->prevBlock();
+            int64_t bestHash = BlockHeader::NULL_HASH;
+            if (bestHeader) {
+                bestHash = bestHeader->getHeader().hash;
+                if (bestHeader->prevBlock()) {
+                    bestHeader = bestHeader->prevBlock();
+                    bestHash = bestHeader->getHeader().hash;
+                }
             }
-            sendToNode(messageGen->generateGetHeadersMessage(getIndex(), bestHeader->getHeader().hash), peerIndex);
+            sendToNode(messageGen->generateGetHeadersMessage(getIndex(), bestHash), peerIndex);
         }
     }
 }
@@ -474,11 +489,13 @@ void POWNode::dumpAddresses(POWMessage *msg) {
 #if(1) // handle incoming messages from peers
 void POWNode::handleMessage(cMessage *msg) {
     std::string msgName = msg->getName();
-    if (boost::starts_with(msgName, "schedule")) {
+    std::string test = "schedule";
+    if (msgName == test) {
         SchedulerMessage *schMessage = check_and_cast<SchedulerMessage*>(msg);
         EV << "Received simulation scheduler message " << schMessage << std::endl;
         handleScheduledMessage(schMessage);
     } else {
+        EV << "Not a simulation scheduled message" << std::endl;
         POWMessage *powMessage = check_and_cast<POWMessage *>(msg);
         logReceivedMessage(powMessage);
         if (powMessage->isSelfMessage()) {
@@ -494,14 +511,27 @@ void POWNode::handleMessage(cMessage *msg) {
     }
 }
 
+void POWNode::handleBlocksMessage(POWMessage *msg) {
+    EV << "Handling blocks message " << msg << std::endl;
+    BlocksMessage *blMsg = check_and_cast<BlocksMessage*>(msg);
+    for (auto bl : blMsg->getBlocks()) {
+        blockchain->addBlock(bl);
+    }
+    chainHeight = blockchain->chainHeight();
+}
+
 void POWNode::handleScheduledMessage(SchedulerMessage *msg) {
+    EV_DETAIL << "Simulation scheduler handler contents for peer " << getIndex() << ":" << std::endl;
+    for (auto pair : simulationScheduleHandlers) {
+        EV_DETAIL << pair.first << std::endl;
+    }
     EV << "Handling simulation scheduler message" << msg << std::endl;
-    std::string methodName = msg->getName();
+    std::string methodName = msg->getMethod();
     auto handlerIt = simulationScheduleHandlers.find(methodName);
     if (handlerIt != simulationScheduleHandlers.end()) {
         handlerIt->second(*this, msg);
     } else {
-        EV << "No handler for simulation scheduled message " << msg << std::endl;
+        EV << "No handler for simulation scheduled message " << msg << " with method name " << methodName << std::endl;
     }
 }
 
@@ -748,6 +778,7 @@ void POWNode::handleNewBlock(SchedulerMessage *msg) {
         state.verifiedTransactions.clear();
         blockchain->addBlock(result);
         state.blocksToAnnounce.push_back(result->getHeader());
+        chainHeight = blockchain->chainHeight();
     }
 }
 
@@ -855,5 +886,11 @@ bool POWNode::checkMessageInScope(POWMessage *msg) {
         }
     }
     return true;
+}
+
+void POWNode::refreshDisplay() const {
+    char buf[40];
+    sprintf(buf, "chainheight: %ld", chainHeight);
+    getDisplayString().setTagArg("t", 0, buf);
 }
 #endif

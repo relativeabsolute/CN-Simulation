@@ -23,4 +23,5 @@ class noncobject parametersVector;
 
 message SchedulerMessage {
     parametersVector parameters;
+    string method;
 }
