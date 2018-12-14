@@ -79,7 +79,7 @@ public:
         return result;
     }
 
-    BlocksMessage *generateBlocksMessage(int sourceIndex, const std::vector<std::shared_ptr<Block>> blocks) {
+    BlocksMessage *generateBlocksMessage(int sourceIndex, const std::vector<Block> blocks) {
         auto result = generateMessage<BlocksMessage>(sourceIndex, MESSAGE_GETBLOCKS_COMMAND);
         result->setBlocks(blocks);
         return result;

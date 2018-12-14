@@ -46,7 +46,7 @@ struct POWNodeData {
     int knownHeight;
 
     // blocks to be sent to this peer in the sendOutgoingData phase
-    std::vector<std::shared_ptr<Block>> blocksToSend;
+    std::vector<Block> blocksToSend;
 
     int64_t pubHash;
 };

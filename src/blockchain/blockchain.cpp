@@ -36,18 +36,6 @@ std::unique_ptr<Blockchain> Blockchain::readFromDirectory(const std::string &dir
         }
     }
     result->setBlocksPerFile(maxBlocksPerFile);
-    // link blocks after they are all read
-    for (auto blocksIt = result->blocks.begin(); blocksIt != result->blocks.end(); ++blocksIt) {
-        int64_t parentHash = (*blocksIt)->getHeader().parentHash;
-        if (parentHash != BlockHeader::NULL_HASH) {
-            auto findIt = std::find_if(result->blocks.begin(), result->blocks.end(), [&, parentHash](std::shared_ptr<Block> block) {
-                return block->getHeader().hash == parentHash;
-            });
-            if (findIt != result->blocks.end()) {
-                (*blocksIt)->setPrevBlock(*findIt);
-            }
-        }
-    }
     return result;
 }
 
@@ -59,7 +47,7 @@ Blockchain::blocks_size Blockchain::readBlocksFile(const std::string &fileName) 
         for (blocks_size i = 0; i < numBlocks; ++i) {
             Block nextBlock;
             fileReader >> nextBlock;
-            blocks.push_back(std::make_shared<Block>(nextBlock));
+            blocks.push_back(nextBlock);
         }
     }
     return numBlocks;
@@ -83,36 +71,38 @@ void Blockchain::writeBlocksFile(const std::string &fileName, int start, int end
     }
 }
 
-void Blockchain::addBlock(std::shared_ptr<Block> newBlock) {
-    if (newBlock == nullptr || newBlock->getHeader().parentHash != getTip()->getHeader().hash) {
+void Blockchain::addBlock(Block &&newBlock) {
+    if (newBlock.getHeader().hash == BlockHeader::NULL_HASH) {
         return;
     }
-    blocks.push_back(newBlock);
+    if (chainHeight() == 0 || getTip().getHeader().hash == newBlock.getHeader().parentHash) {
+        blocks.push_back(newBlock);
+    }
 }
 
-std::shared_ptr<Block> &&Blockchain::findBlockByHash(int64_t hash) {
-    auto empty = std::shared_ptr<Block>();
+Block Blockchain::findBlockByHash(int64_t hash) {
+    Block blk;
     if (hash == BlockHeader::NULL_HASH) {
-        return std::move(empty);
+        return blk;
     }
-    auto blocksIt = std::find_if(blocks.begin(), blocks.end(), [&, hash](std::shared_ptr<Block> block) {
-        return block->getHeader().hash == hash;
+    auto blocksIt = std::find_if(blocks.begin(), blocks.end(), [&, hash](Block block) {
+        return block.getHeader().hash == hash;
     });
     if (blocksIt != blocks.end()) {
-        return std::move(*blocksIt);
+        return *blocksIt;
     } else {
-        return std::move(empty);
+        return blk;
     }
 }
 
-std::vector<std::shared_ptr<Block>> Blockchain::getBlocksAfter(int64_t hash) {
+std::vector<Block> Blockchain::getBlocksAfter(int64_t hash) {
     auto blocksIt = blocks.begin();
     if (hash != BlockHeader::NULL_HASH) {
-        blocksIt = std::find_if(blocks.begin(), blocks.end(), [&, hash](std::shared_ptr<Block> block) {
-            return block->getHeader().hash == hash;
+        blocksIt = std::find_if(blocks.begin(), blocks.end(), [&, hash](Block block) {
+            return block.getHeader().hash == hash;
         });
     }
-    std::vector<std::shared_ptr<Block>> result;
+    std::vector<Block> result;
     std::copy(blocksIt, blocks.end(), std::back_inserter(result));
     return result;
 }
@@ -122,7 +112,7 @@ int64_t Blockchain::getMaxTxHash() const {
         return 0;
     }
     int64_t prevMax = 0;
-    for (auto tx : getTip()->getTx()) {
+    for (auto tx : getTip().getTx()) {
         if (tx.hash > prevMax) {
             prevMax = tx.hash;
         }

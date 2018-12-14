@@ -25,7 +25,7 @@ struct BlockHeader {
     txs_size numTx;
     int creationTime;
 
-    BlockHeader() {}
+    BlockHeader() : hash(NULL_HASH), parentHash(NULL_HASH), numTx(0), creationTime(-1) {}
 
     friend std::istream &operator>>(std::istream &input, BlockHeader &header) {
         input >> header.hash >> header.parentHash >> header.numTx >> header.creationTime;
@@ -64,20 +64,12 @@ public:
         return header;
     }
 
-    void setPrevBlock(std::shared_ptr<Block> newPrev) {
-        prev = newPrev;
-    }
-
-    std::shared_ptr<Block> prevBlock() const {
-        return prev;
-    }
-
-    static std::shared_ptr<Block> create(int miner, int reward, int64_t parentHash, int time, const std::vector<Transaction> tx) {
-        auto result = std::make_shared<Block>();
-        result->header.creationTime = time;
-        result->header.parentHash = parentHash;
-        result->header.hash = parentHash + 1;
-        result->header.numTx = tx.size() + 1;
+    static Block create(int miner, int reward, int64_t parentHash, int time, const std::vector<Transaction> tx) {
+        Block result;
+        result.header.creationTime = time;
+        result.header.parentHash = parentHash;
+        result.header.hash = parentHash + 1;
+        result.header.numTx = tx.size() + 1;
         Transaction coinbase;
         TransactionInput txIn;
         txIn.prevTxHash = TransactionInput::COINBASE_HASH;
@@ -88,14 +80,13 @@ public:
         txOut.publicKey = miner * 2;
         txOut.value = reward;
         coinbase.outputs.push_back(txOut);
-        result->transactions.push_back(coinbase);
-        std::copy(tx.begin(), tx.end(), std::back_inserter(result->transactions));
+        result.transactions.push_back(coinbase);
+        std::copy(tx.begin(), tx.end(), std::back_inserter(result.transactions));
         return result;
     }
 
     std::vector<Transaction> getTx() const { return transactions; }
 private:
-    std::shared_ptr<Block> prev;
     BlockHeader header;
     std::vector<Transaction> transactions;
 };

@@ -18,10 +18,8 @@ cplusplus {{
     typedef std::vector<int> parametersVector;
 }};
 
-class noncobject stdstring;
 class noncobject parametersVector;
 
 message SchedulerMessage {
     parametersVector parameters;
-    string method;
 }

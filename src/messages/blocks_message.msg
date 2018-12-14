@@ -18,7 +18,7 @@ cplusplus {{
     #include "pow_message_m.h"
     #include <vector>
     #include <memory>
-    typedef std::vector<std::shared_ptr<Block>> blocksVector;
+    typedef std::vector<Block> blocksVector;
 }};
 
 message POWMessage;

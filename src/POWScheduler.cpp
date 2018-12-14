@@ -37,6 +37,7 @@ void POWScheduler::initialize() {
 void POWScheduler::handleMessage(cMessage *msg) {
     std::string msgName = msg->getName();
     if (msgName == "start_schedule") {
+        bubble("Starting schedule");
         EV << "Starting schedule." << std::endl;
         std::ifstream fileReader(par("scheduleFileName").stringValue());
         if (fileReader) {
@@ -52,10 +53,9 @@ void POWScheduler::handleMessage(cMessage *msg) {
                 if (tok.hasMoreTokens()) {
                     parameters = cStringTokenizer(tok.nextToken(), ",").asIntVector();
                 }
-                auto msg = new SchedulerMessage("schedule");
-                msg->setMethod(std::move(messageType).c_str());
+                auto msg = new SchedulerMessage(std::move(messageType).c_str());
                 msg->setParameters(parameters);
-                EV << "Scheduling message with method " << msg->getMethod() << " to be sent to " << address
+                EV << "Scheduling message to be sent to " << address
                         << " in " << time << "s" << std::endl;
                 sendDelayed(msg, simTime() + time, "toNodes", address);
             }

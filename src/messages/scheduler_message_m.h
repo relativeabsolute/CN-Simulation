@@ -24,12 +24,11 @@
 // }}
 
 /**
- * Class generated from <tt>messages/scheduler_message.msg:24</tt> by nedtool.
+ * Class generated from <tt>messages/scheduler_message.msg:23</tt> by nedtool.
  * <pre>
  * message SchedulerMessage
  * {
  *     parametersVector parameters;
- *     string method;
  * }
  * </pre>
  */
@@ -37,7 +36,6 @@ class SchedulerMessage : public ::omnetpp::cMessage
 {
   protected:
     parametersVector parameters;
-    ::omnetpp::opp_string method;
 
   private:
     void copy(const SchedulerMessage& other);
@@ -59,8 +57,6 @@ class SchedulerMessage : public ::omnetpp::cMessage
     virtual parametersVector& getParameters();
     virtual const parametersVector& getParameters() const {return const_cast<SchedulerMessage*>(this)->getParameters();}
     virtual void setParameters(const parametersVector& parameters);
-    virtual const char * getMethod() const;
-    virtual void setMethod(const char * method);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const SchedulerMessage& obj) {obj.parsimPack(b);}
