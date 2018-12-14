@@ -10,6 +10,9 @@
 #include <set>
 #include <fstream>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include "messages/messages.h"
+#include "POWScheduler.h"
 
 namespace fs = boost::filesystem;
 
@@ -89,12 +92,21 @@ void POWNode::setupMessageHandlers() {
     selfMessageHandlers[MessageGenerator::MESSAGE_ADVERTISE_ADDRESSES] = &POWNode::advertiseAddresses;
     selfMessageHandlers[MessageGenerator::MESSAGE_DUMP_ADDRS] = &POWNode::dumpAddresses;
     selfMessageHandlers[MessageGenerator::MESSAGE_POLL_ADDRS] = &POWNode::pollAddresses;
+    if (isMiner) {
+        selfMessageHandlers[MessageGenerator::MESSAGE_MINE] = &POWNode::mineHandler;
+    }
 
     messageHandlers[MessageGenerator::MESSAGE_NODE_VERSION_COMMAND] = &POWNode::handleNodeVersionMessage;
     messageHandlers[MessageGenerator::MESSAGE_VERACK_COMMAND] = &POWNode::handleVerackMessage;
     messageHandlers[MessageGenerator::MESSAGE_REJECT_COMMAND] = &POWNode::handleRejectMessage;
     messageHandlers[MessageGenerator::MESSAGE_GETADDR_COMMAND] = &POWNode::handleGetAddrMessage;
     messageHandlers[MessageGenerator::MESSAGE_ADDRS_COMMAND] = &POWNode::handleAddrsMessage;
+    messageHandlers[MessageGenerator::MESSAGE_HEADERS_COMMAND] = &POWNode::handleHeadersMessage;
+    messageHandlers[MessageGenerator::MESSAGE_TX_COMMAND] = &POWNode::handleTxMessage;
+    messageHandlers[MessageGenerator::MESSAGE_GETBLOCKS_COMMAND] = &POWNode::handleGetBlocksMessage;
+
+    simulationScheduleHandlers[POWScheduler::SCHEDULER_MESSAGE_NEW_BLOCK] = &POWNode::handleNewBlock;
+    simulationScheduleHandlers[POWScheduler::SCHEDULER_MESSAGE_TX] = &POWNode::handleNewTx;
 }
 
 void POWNode::internalInitialize() {
@@ -115,11 +127,16 @@ void POWNode::internalInitialize() {
     // NOTE: this does NOT set up connections to these peers
     addrMan = std::make_unique<AddrManager>(randomAddressFraction);
     readAddresses();
+
+    // step 2c: load blockchain
+    initBlockchain();
 }
 
 void POWNode::initBlockchain() {
     EV << "Loading block chain" << std::endl;
-
+    if (newNetwork || !(blockchain = Blockchain::readFromDirectory(blocksDir))) {
+        blockchain = Blockchain::emptyBlockchain(blocksPerFile);
+    }
 }
 
 void POWNode::readAddresses() {
@@ -133,7 +150,7 @@ void POWNode::readAddresses() {
         if (fileReader) {
             std::string fileContents;
             fileReader >> fileContents;
-            addresses = stringAsVector(fileContents);
+            addresses = cStringTokenizer(fileContents.c_str(), ",").asIntVector();
         }
     }
     EV << "Addresses: ";
@@ -155,38 +172,47 @@ void POWNode::readConstantParameters() {
     dumpAddressesInterval = par("dumpAddressesInterval").intValue();
     dataDir = par("dataDir").stringValue();
     addressesFile = (fs::path(dataDir) / ("peers" + std::to_string(getIndex()) + ".txt")).string();
+    blocksDir = (fs::path(dataDir) / "blocks" / ("peer" + std::to_string(getIndex()))).string();
     const char *defaultNodesStr = par("defaultNodeList").stringValue();
     defaultNodes = cStringTokenizer(defaultNodesStr).asIntVector();
     randomAddressFraction = par("randomAddressFraction").doubleValue();
     newNetwork = par("newNetwork").boolValue();
+    blocksPerFile = par("blocksPerFile").intValue();
+    auto minersList = cStringTokenizer(par("minersList").stringValue()).asIntVector();
+    isMiner = std::find(minersList.begin(), minersList.end(), getIndex()) != minersList.end();
+    blockSyncRecency = par("blockSyncRecency").intValue();
+    coinbaseOutput = par("coinbaseOutput").intValue();
 
     messageGen = std::make_unique<MessageGenerator>(versionNumber);
 }
 
 void POWNode::scheduleSelfMessages() {
-    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_CHECK_QUEUES, ""));
-    scheduleAt(simTime() + dumpAddressesInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_DUMP_ADDRS, ""));
+    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_CHECK_QUEUES));
+    scheduleAt(simTime() + dumpAddressesInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_DUMP_ADDRS));
 
     // initial address poll delayed to allow initial connections to be built up
-    scheduleAt(simTime() + 2 * threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_POLL_ADDRS, ""));
+    scheduleAt(simTime() + 2 * threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_POLL_ADDRS));
+
+    if (isMiner) {
+        scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_MINE));
+    }
 }
 
 void POWNode::initialize() {
     internalInitialize();
 
     // set up step 1:
-    // attempt to establish connections with the list of default nodes
-    // TODO: have node check for its data file, and if there is one read list of known nodes from it
+    // attempt to establish connections with the list of known nodes (default nodes if there are none)
     initConnections();
 
     // step 2:
     // set up self scheduled messages
-    // just need to schedule one self message because the handler will schedule the next one
+    // just need to schedule one self message for each type because the handler will schedule the next one
     scheduleSelfMessages();
 
     // step 3:
     // send node version message on outbound connections
-    auto msg = messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_NODE_VERSION_COMMAND, "");
+    auto msg = messageGen->generateVersionMessage(getIndex(), blockchain->chainHeight());
 
     EV << "Broadcasting node version message to outbound peers." << std::endl;
     broadcastMessage(msg, [&, this](int peer){ return !this->peers[peer]->flags.test(Inbound); });
@@ -217,20 +243,51 @@ void POWNode::sendOutgoingMessages(int peerIndex) {
             EV << "No connection with node " << peerIndex << ".  Not sending outgoing data." << std::endl;
             return;
         }
-        // Note: we don't handle address advertisement here since that's done on a poisson distributed
-        // time interval, so it can just be a scheduled message
-        // TODO: block sync
-        // TODO: send wallet transactions not in a block yet
-        // TODO: do block announcements via headers
-        // TODO: inventory
-        // TODO: detect if peer is stalling
-        // TODO: check number of blocks in flight
-        // TODO: check for headers sync timeouts
-        // TODO: check outbound peers have reasnable chains
-        // TODO: getdata blocks
-        // TODO: getdata non blocks
+        startBlockSync(peerIndex);
+        if (!peer->second->blocksToSend.empty()) {
+            sendToNode(messageGen->generateBlocksMessage(getIndex(), peer->second->blocksToSend), peerIndex);
+            peer->second->blocksToSend.clear();
+        }
     } else {
         EV << "Attempted to send data to nonexistant node " << peerIndex << std::endl;
+    }
+}
+
+void POWNode::startBlockSync(int peerIndex) {
+    if (!state.syncStarted) {
+        // request headers from a single peer, unless our best header is recent enough
+        auto bestHeader = blockchain->getTip();
+        if (state.numSyncs == 0 || bestHeader->getHeader().creationTime > simTime().inUnit(SimTimeUnit::SIMTIME_S) - blockSyncRecency) {
+            state.syncStarted = true;
+            state.numSyncs++;
+            if (bestHeader->prevBlock()) {
+                bestHeader = bestHeader->prevBlock();
+            }
+            sendToNode(messageGen->generateGetHeadersMessage(getIndex(), bestHeader->getHeader().hash), peerIndex);
+        }
+    }
+}
+
+void POWNode::mineHandler(POWMessage *msg) {
+    if (isMiner) {
+        EV << "Handling mine message" << std::endl;
+        // proof of work is handled by the scheduler
+        // all we need to do is validate transactions
+        if (blockchain->chainHeight() > 0) {
+            for (auto tx : state.unverifiedTransactions) {
+                if (std::all_of(tx.inputs.begin(), tx.inputs.end(), [&, this](TransactionInput in) {
+                    return this->blockchain->getTip()->getTx()[in.prevTxHash].outputs[in.prevTxN].publicKey ==
+                            in.signature - 1; // TODO: for now don't check for double spends
+                })) {
+                    EV_DETAIL << "Transaction valid" << std::endl;
+                    state.verifiedTransactions.push_back(tx);
+                } else {
+                    EV_DETAIL << "Transaction invalid" << std::endl;
+                }
+            }
+        }
+        state.unverifiedTransactions.clear();
+        scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_MINE));
     }
 }
 
@@ -291,15 +348,15 @@ bool POWNode::processIncomingMessages(int peerIndex) {
 void POWNode::pollAddresses(POWMessage *msg) {
     int meIndex = getIndex();
     EV << "Polling successfully connected peers for connections." << std::endl;
-    broadcastMessage(messageGen->generateMessage(meIndex, MessageGenerator::MESSAGE_GETADDR_COMMAND, ""),
+    broadcastMessage(messageGen->generateMessage(meIndex, MessageGenerator::MESSAGE_GETADDR_COMMAND),
             [&, this](int peer){ return this->peers[peer]->flags.test(SuccessfullyConnected); });
-    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(meIndex, MessageGenerator::MESSAGE_POLL_ADDRS, ""));
+    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(meIndex, MessageGenerator::MESSAGE_POLL_ADDRS));
 }
 
 void POWNode::scheduleAddrAd(int peerIndex) {
     std::string data = "peerIndex=" + std::to_string(peerIndex);
     // same interval as threadSchedule since BTC does this task as part of that thread
-    scheduleAt(simTime() + poisson((double)(int64_t)threadScheduleInterval), messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_ADVERTISE_ADDRESSES, data));
+    //scheduleAt(simTime() + poisson((double)(int64_t)threadScheduleInterval), messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_ADVERTISE_ADDRESSES, data));
 }
 
 void POWNode::advertiseAddresses(POWMessage *msg) {
@@ -365,7 +422,18 @@ void POWNode::messageHandler(POWMessage *msg) {
             peersProcess.push(peerIndex);
         } // don't put the peer back on if it's disconnected
     }
-    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_CHECK_QUEUES, ""));
+    // do broadcasts
+    sendBroadcasts();
+    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_CHECK_QUEUES));
+}
+
+void POWNode::sendBroadcasts() {
+    // for now this is just block announcements
+    broadcastMessage(messageGen->generateHeadersMessage(getIndex(), state.blocksToAnnounce),
+            [&,this](int peerIndex) {
+        return this->peers[peerIndex]->flags.test(SuccessfullyConnected) && !this->peers[peerIndex]->flags.test(Disconnect);
+    });
+    state.blocksToAnnounce.clear();
 }
 
 void POWNode::handleSelfMessage(POWMessage *msg) {
@@ -399,35 +467,93 @@ void POWNode::dumpAddresses(POWMessage *msg) {
     } else {
         EV << "Data file could not be written to." << std::endl;
     }
-    scheduleAt(simTime() + dumpAddressesInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_DUMP_ADDRS, ""));
+    scheduleAt(simTime() + dumpAddressesInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_DUMP_ADDRS));
 }
 #endif
 
 #if(1) // handle incoming messages from peers
 void POWNode::handleMessage(cMessage *msg) {
-    POWMessage *powMessage = check_and_cast<POWMessage *>(msg);
-    logReceivedMessage(powMessage);
-    if (powMessage->isSelfMessage()) {
-        EV << "Received scheduler message.  Sending to appropriate handler." << std::endl;
-        handleSelfMessage(powMessage);
-        delete msg;
+    std::string msgName = msg->getName();
+    if (boost::starts_with(msgName, "schedule")) {
+        SchedulerMessage *schMessage = check_and_cast<SchedulerMessage*>(msg);
+        EV << "Received simulation scheduler message " << schMessage << std::endl;
+        handleScheduledMessage(schMessage);
     } else {
-        int source = powMessage->getSource();
-        EV << "Adding message to queue for peer " << source << std::endl;
-        EV_DETAIL << "Message data: " << powMessage->getData() << std::endl;
-        peers[source]->incomingMessages.push_back(powMessage);
-        // don't delete here because the message needs to be processed
+        POWMessage *powMessage = check_and_cast<POWMessage *>(msg);
+        logReceivedMessage(powMessage);
+        if (powMessage->isSelfMessage()) {
+            EV << "Received self scheduler message.  Sending to appropriate handler." << std::endl;
+            handleSelfMessage(powMessage);
+            delete msg;
+        } else {
+            int source = powMessage->getSource();
+            EV << "Adding message to queue for peer " << source << std::endl;
+            peers[source]->incomingMessages.push_back(powMessage);
+            // don't delete here because the message needs to be processed
+        }
+    }
+}
+
+void POWNode::handleScheduledMessage(SchedulerMessage *msg) {
+    EV << "Handling simulation scheduler message" << msg << std::endl;
+    std::string methodName = msg->getName();
+    auto handlerIt = simulationScheduleHandlers.find(methodName);
+    if (handlerIt != simulationScheduleHandlers.end()) {
+        handlerIt->second(*this, msg);
+    } else {
+        EV << "No handler for simulation scheduled message " << msg << std::endl;
+    }
+}
+
+void POWNode::handleGetHeadersMessage(POWMessage *msg) {
+    GetHeadersMessage *ghMsg = check_and_cast<GetHeadersMessage *>(msg);
+    int meNode = getIndex();
+    int sourceNode = ghMsg->getSource();
+    EV << "Handling request for headers from " << sourceNode << std::endl;
+    // TODO: find headers that sender does not know about in our chain
+    std::vector<BlockHeader> toSend;
+    auto newBlocks = blockchain->getBlocksAfter(ghMsg->getHash());
+    for (auto block : newBlocks) {
+        toSend.push_back(block->getHeader());
+    }
+    sendToNode(messageGen->generateHeadersMessage(meNode, toSend), sourceNode);
+}
+
+void POWNode::handleHeadersMessage(POWMessage *msg) {
+    HeadersMessage *headersMsg = check_and_cast<HeadersMessage*>(msg);
+    int meNode = getIndex();
+    int sourceNode = msg->getSource();
+    EV << "Handling headers received from " << sourceNode << std::endl;
+    EV << "Received " << headersMsg->getHeaders().size() << " headers." << std::endl;
+    int64_t hashLastBlock = BlockHeader::NULL_HASH;
+    int64_t requestHeader = BlockHeader::NULL_HASH;
+    bool foundOldest = false;
+    for (auto header : headersMsg->getHeaders()) {
+        if (hashLastBlock != BlockHeader::NULL_HASH && header.parentHash != hashLastBlock) {
+            // non continuous headers sequence
+            EV_WARN << "Received non continuous headers sequence from " << sourceNode << std::endl;
+            return;
+        }
+        if (blockchain->chainHeight() == 0 || (!foundOldest && hashLastBlock == blockchain->getTip()->getHeader().hash)) {
+            foundOldest = true;
+            requestHeader = header.hash;
+        }
+        hashLastBlock = header.hash;
+    }
+    if (foundOldest) {
+        sendToNode(messageGen->generateGetBlocksMessage(meNode, requestHeader), sourceNode);
     }
 }
 
 void POWNode::handleNodeVersionMessage(POWMessage *msg) {
-    int sourceNode = msg->getSource();
+    VersionMessage *versionMsg = check_and_cast<VersionMessage*>(msg);
+    int sourceNode = versionMsg->getSource();
     int meNode = getIndex();
-    int sourceVersionNo = msg->getVersionNo();
+    int sourceVersionNo = versionMsg->getVersionNo();
     if (sourceVersionNo < minAcceptedVersionNumber) {
         // disconnect from nodes that are too old
         EV << "Node " << sourceNode << " using obsolete protocol version.  Minimum accepted version is " << minAcceptedVersionNumber << std::endl;
-        sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_REJECT_COMMAND, "reason=obsolete;disconnect=true"), sourceNode);
+        sendToNode(messageGen->generateRejectMessage(meNode, true, "obsolete"), sourceNode);
         disconnectNode(sourceNode);
     } else {
         std::string bubbleMessage = "Received valid version message from " + std::to_string(sourceNode);
@@ -436,13 +562,21 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
         // TODO: store starting height of incoming node
         if (sourceInbound) {
             EV << "Sending node version message to inbound peer " << sourceNode << std::endl;
-            sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_NODE_VERSION_COMMAND, ""), sourceNode);
+            sendToNode(messageGen->generateVersionMessage(meNode, blockchain->chainHeight()), sourceNode);
         }
 
         EV << "Node " << sourceNode << " is compatible.  Sending VERACK." << std::endl;
         peers[sourceNode]->version = sourceVersionNo;
+        int sourceChainHeight = versionMsg->getChainHeight();
+        if (sourceChainHeight > state.bestPeerHeight) {
+            state.bestPeerHeight = sourceChainHeight;
+            peers[sourceNode]->knownHeight = sourceChainHeight;
+            if (sourceChainHeight > blockchain->chainHeight()) {
+                peers[sourceNode]->flags.set(RequestHeaders);
+            }
+        }
 
-        sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_VERACK_COMMAND, ""), sourceNode);
+        sendToNode(messageGen->generateMessage(meNode, MessageGenerator::MESSAGE_VERACK_COMMAND), sourceNode);
 
         /* BTC asks for addresses upon receiving version message, but we use a polling approach
         if (!sourceInbound) {
@@ -462,6 +596,7 @@ void POWNode::handleNodeVersionMessage(POWMessage *msg) {
 
 void POWNode::handleVerackMessage(POWMessage *msg) {
     int sourceIndex = msg->getSource();
+    int meIndex = getIndex();
     std::string connectionType = "inbound";
     if (!peers[sourceIndex]->flags.test(Inbound))  {
         // TODO: mark the node's state with the currently connected flag, so the timestamp is updated later
@@ -475,22 +610,20 @@ void POWNode::handleVerackMessage(POWMessage *msg) {
     bubble(bubbleMessage.c_str());
     EV << "Handling verack message from " << connectionType << " peer " << sourceIndex << std::endl;
     EV << "Marking peer " << sourceIndex << " as successfully connected." << std::endl;
-    peers[msg->getSource()]->flags.set(SuccessfullyConnected);
+    peers[sourceIndex]->flags.set(SuccessfullyConnected);
+    if (peers[sourceIndex]->flags.test(RequestHeaders) && peers[sourceIndex]->knownHeight == state.bestPeerHeight) {
+        sendToNode(messageGen->generateGetHeadersMessage(meIndex, blockchain->getTip()->getHeader().hash), sourceIndex);
+    }
 }
 
 void POWNode::handleRejectMessage(POWMessage *msg) {
-    std::string msgData = msg->getData();
-    int source = msg->getSource();
-    std::string bubbleMessage = "Received reject message from " + std::to_string(source) + " containing data: " + msgData;
+    RejectMessage *rejectMsg = check_and_cast<RejectMessage*>(msg);
+    int source = rejectMsg->getSource();
+    std::string bubbleMessage = "Received reject message from " + std::to_string(source);
     bubble(bubbleMessage.c_str());
-    if (msgData.empty()) {
-        EV << "Invalid reject message.  Message must contain data." << std::endl;
-    } else {
-        auto dataParamMap = dataToMap(msgData);
-        EV << "Reject reason: " << dataParamMap["reason"] << std::endl;
-        if (dataParamMap["disconnect"] == "true") {
-            disconnectNode(msg->getSource());
-        }
+    EV << "Reject reason: " << rejectMsg->getReason() << std::endl;
+    if (rejectMsg->getDisconnect()) {
+        disconnectNode(source);
     }
 }
 
@@ -506,15 +639,24 @@ void POWNode::relayAddress(int address) {
 }
 
 void POWNode::handleAddrsMessage(POWMessage *msg) {
-    int messageSource = msg->getSource();
-    std::string bubbleMessage = "handling addrs message from peer: " + std::to_string(messageSource) + " containing data " + msg->getData();
+    AddrsMessage *addrsMsg = check_and_cast<AddrsMessage*>(msg);
+    int messageSource = addrsMsg->getSource();
+    std::string bubbleMessage = "handling addrs message from peer: " + std::to_string(messageSource);
     bubble(bubbleMessage.c_str());
     EV << "Handling addrs message from peer " << messageSource << std::endl;
-    std::vector<int> newAddresses = getMessageDataVector(msg, "addresses");
+    std::vector<int> newAddresses = addrsMsg->getAddresses();
     EV << "Received " << newAddresses.size() << " addresses from node " << messageSource << std::endl;
     // TODO: attempt to connect to some if not all of the new peers
     dynamicConnect(newAddresses);
     addrMan->addAddresses(newAddresses);
+}
+
+void POWNode::handleTxMessage(POWMessage *msg) {
+    // ignore a tx message if we are not a miner
+    if (isMiner) {
+        TxMessage *txMsg = check_and_cast<TxMessage*>(msg);
+        state.unverifiedTransactions.push_back(txMsg->getTx());
+    }
 }
 
 void POWNode::handleAddrMessage(POWMessage *msg) {
@@ -550,6 +692,14 @@ void POWNode::handleAddrMessage(POWMessage *msg) {
     */
 }
 
+void POWNode::handleGetBlocksMessage(POWMessage *msg) {
+    GetHeadersMessage *bhMessage = check_and_cast<GetHeadersMessage*>(msg);
+    int messageSource = bhMessage->getSource();
+    EV << "Handling getblocks message from " << messageSource << std::endl;
+    auto newBlocks = blockchain->getBlocksAfter(bhMessage->getHash());
+    std::copy(newBlocks.begin(), newBlocks.end(), std::back_inserter(peers[messageSource]->blocksToSend));
+}
+
 void POWNode::handleGetAddrMessage(POWMessage *msg) {
     int messageSource = msg->getSource();
     std::string bubbleMessage = "Handling get_addr message from " + std::to_string(messageSource);
@@ -580,27 +730,78 @@ void POWNode::handleGetAddrMessage(POWMessage *msg) {
     }
     */
     auto addresses = addrMan->getRandomAddresses();
-    EV_DETAIL << "Sending addresses " << vectorAsString(addresses) << " to peer " << messageSource << std::endl;
-    sendToNode(messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_ADDRS_COMMAND,
-            "addresses=" + vectorAsString(addresses)), messageSource);
+    sendToNode(messageGen->generateAddrsMessage(getIndex(), addresses), messageSource);
 }
 #endif
 
-#if(1) // utility functions
-std::vector<int> POWNode::getMessageDataVector(const POWMessage *msg, const std::string &vectorName) const {
-    EV_DETAIL << "Getting message data vector for parameter \'" << vectorName << "\' from message " << msg << std::endl;
-    auto dataMap = dataToMap(msg->getData());
-    EV_DETAIL << "Data map assigned." << std::endl;
-    return stringAsVector(dataMap[vectorName]);
+#if(1) // handle simulation scheduled messages
+void POWNode::handleNewBlock(SchedulerMessage *msg) {
+    if (!isMiner) {
+        EV_ERROR << "Only miners can create new blocks" << std::endl;
+        error("only miners can create new blocks");
+    } else {
+        int64_t prev = BlockHeader::NULL_HASH;
+        if (blockchain->chainHeight() != 0) {
+            prev = blockchain->getTip()->getHeader().hash;
+        }
+        auto result = Block::create(getIndex(), coinbaseOutput, prev, simTime().inUnit(SimTimeUnit::SIMTIME_S), state.verifiedTransactions);
+        state.verifiedTransactions.clear();
+        blockchain->addBlock(result);
+        state.blocksToAnnounce.push_back(result->getHeader());
+    }
 }
+
+void POWNode::handleNewTx(SchedulerMessage *msg) {
+    if (blockchain->chainHeight() > 0) {
+        Transaction tx;
+        int peer = msg->getParameters()[0];
+        int amount = msg->getParameters()[1];
+        TransactionOutput txOut;
+        txOut.value = amount;
+        txOut.publicKey = peer * 2;
+        auto prevTxVec = blockchain->getTip()->getTx();
+        std::vector<TransactionInput> inputs;
+        for (auto prevTx : prevTxVec) {
+            for (int i = 0; i < prevTx.outputs.size(); ++i) {
+                if (prevTx.outputs[i].publicKey == getIndex() * 2) {
+                    // the transaction output is ours, so check if we've spent the output yet
+                    int outAmount = state.outputsSpent[prevTx.hash][i];
+                    if (outAmount > 0) {
+                        TransactionInput txIn;
+                        if (outAmount > amount) {
+                            state.outputsSpent[prevTx.hash][i] -= amount;
+                            amount = 0;
+                        } else {
+                            amount -= outAmount;
+                            state.outputsSpent[prevTx.hash][i] = 0;
+                        }
+                        txIn.prevTxHash = prevTx.hash;
+                        txIn.prevTxN = i;
+                        txIn.signature = getIndex() * 2 + 1;
+                        inputs.push_back(txIn);
+                    }
+                }
+            }
+        }
+        if (amount == 0) {
+            tx.outputs.push_back(txOut);
+            std::copy(inputs.begin(), inputs.end(), std::back_inserter(tx.inputs));
+            tx.hash = blockchain->getMaxTxHash() + 1;
+            broadcastMessage(messageGen->generateTxMessage(getIndex(), tx), [&,this](int peerIndex) {
+                return this->peers[peerIndex]->flags.test(SuccessfullyConnected) && !this->peers[peerIndex]->flags.test(Disconnect);
+            });
+        } // currently no check that we aren't overspending, but we won't let that happen
+    }
+}
+#endif
+
+#if(1) // utility function
 
 void POWNode::dynamicConnect(const std::vector<int> &newAddresses) {
     EV << "Dynamically connecting to new addresses." << std::endl;
-    EV_DETAIL << "Addresses before checking for connections: " << vectorAsString(newAddresses) << std::endl;
     std::vector<int> toAdd;
     std::remove_copy_if(newAddresses.begin(), newAddresses.end(),
             std::back_inserter(toAdd), [&, this](int peer){ return this->nodeIndexToGateMap.find(peer) != this->nodeIndexToGateMap.end(); });
-    EV_DETAIL << "Addresses after checking for connections: " << vectorAsString(toAdd) << std::endl;
     // connect to half the peers to even out the number of inbound and outbound connections for each node
     int newCount = 0;
     for (int i = 0; i < toAdd.size() / 2; ++i) {
@@ -609,34 +810,6 @@ void POWNode::dynamicConnect(const std::vector<int> &newAddresses) {
         connectTo(otherIndex, getPeerNodeByPath(otherIndex));
     }
     EV_DETAIL << "Dynamically connected to " << newCount << " of " << newAddresses.size() << " advertised peers." << std::endl;
-}
-
-std::vector<int> POWNode::stringAsVector(const std::string &vector) const {
-    EV_DETAIL << "stringAsVector, source string = " << vector << std::endl;
-    return cStringTokenizer(vector.c_str(), ",").asIntVector();
-}
-
-std::map<std::string, std::string> POWNode::dataToMap(const std::string &messageData) const {
-    EV_DETAIL << "dataToMap, messageData=" << messageData << std::endl;
-    cStringTokenizer tokenizer(messageData.c_str(), ";");
-    EV_DETAIL << "tokenizer constructed." << std::endl;
-    std::map<std::string, std::string> result;
-    while (tokenizer.hasMoreTokens()) {
-        cStringTokenizer miniToken(tokenizer.nextToken(), "=");
-        EV_DETAIL << "minitokenizer constructed." << std::endl;
-        if (miniToken.hasMoreTokens()) {
-            std::string first = miniToken.nextToken();
-            EV_DETAIL << "first token added." << std::endl;
-            if (miniToken.hasMoreTokens()) {
-                std::string second = miniToken.nextToken();
-                EV_DETAIL << "second token added." << std::endl;
-                auto pair = std::make_pair<std::string&,std::string&>(first, second);
-                EV_DETAIL << "Resulting pair in map: first = \"" << pair.first << "\", second = \"" << pair.second  << "\"" << std::endl;
-                result.insert(pair);
-            }
-        }
-    }
-    return result;
 }
 
 void POWNode::disconnectNode(int nodeIndex) {

@@ -11,15 +11,33 @@
 #include <map>
 #include <omnetpp.h>
 #include "P2PNode.h"
-#include "pow_message_m.h"
+#include "messages/pow_message_m.h"
+#include "messages/scheduler_message_m.h"
 #include "MessageGenerator.h"
 #include "pow_node_data.h"
 #include "addr_manager.h"
+#include "blockchain/blockchain.h"
+#include "blockchain/tx.h"
 #include <functional>
 #include <memory>
 #include <queue>
 
 using namespace omnetpp;
+
+struct POWNodeState {
+    bool syncStarted;
+    int numSyncs;
+    int bestPeerHeight;
+    std::vector<Transaction> verifiedTransactions;
+    std::vector<Transaction> unverifiedTransactions;
+    std::vector<BlockHeader> blocksToAnnounce;
+    // maps a hash of a transaction to a map of (int,int), where each key is the index of the transaction output and each value is the amount left
+    // of the corresponding transaction output
+    std::map<int64_t, std::map<int,int>> outputsSpent;
+
+    POWNodeState() : syncStarted(false), numSyncs(0), bestPeerHeight(-1) {
+    }
+};
 
 /*! Node in a proof of work based blockchain network (i.e., Bitcoin, Litecoin, etc).
  *
@@ -104,6 +122,8 @@ private:
      */
     void handleNodeVersionMessage(POWMessage *msg);
 
+    void handleScheduledMessage(SchedulerMessage *msg);
+
     /*! Handle an incoming verack message.  Set state of connection to accept incoming blockchain messages.
      * \param msg Message to handle.
      */
@@ -125,6 +145,14 @@ private:
      */
     void handleAddrMessage(POWMessage *msg);
 
+    void handleGetHeadersMessage(POWMessage *msg);
+
+    void handleHeadersMessage(POWMessage *msg);
+
+    void handleTxMessage(POWMessage *msg);
+
+    void handleGetBlocksMessage(POWMessage *msg);
+
     /*! Handler for half of address polling interface.  Handles receiving addresses from a peer.
      * \param msg Message to handle.  Contains a set of addresses that we asked for.
      */
@@ -141,42 +169,24 @@ private:
      */
     void sendToNode(POWMessage *msg, int nodeIndex);
 
-    /*! Convert a data string from a message to a map.
-     * \param messageData string of data to convert.  Formatted by param1key=param1value,param2key=param2value,etc.
-     * \returns Map containing key value pairs for each data parameter
-     */
-    std::map<std::string, std::string> dataToMap(const std::string &messageData) const;
-
-    /*! Utility function to get a vector of integers defined by a data parameter.
-     * \param msg Message to get data from.
-     * \param vectorName Name of data parameter to convert into vector.
-     * \returns Vector containing the integers in the parameter
-     */
-    std::vector<int> getMessageDataVector(const POWMessage *msg, const std::string &vectorName) const;
-
-    /*! Convenience function to convert string of i,j,... to a vector of ints
-     * \param vector String to convert from
-     * \returns Vector containing the integers in the parameter
-     */
-    std::vector<int> stringAsVector(const std::string &vector) const;
-
-    template<typename T>
-    std::string vectorAsString(const std::vector<T> &vector) const {
-        std::stringstream buf;
-        for (int i = 0; i < vector.size(); ++i) {
-            buf << std::to_string(vector[i]);
-            if (i != vector.size() - 1) {
-                buf << ",";
-            }
-        }
-        return buf.str();
-    }
-
     /*! "Thread" that checks peers' incoming and outgoing message queues.
      * Calls processIncomingMessages and sendOutgoingMessages for each peer.
      * \param msg Message that initiated the check.  Not used (only here to work with the handler map)
      */
     void messageHandler(POWMessage *msg);
+
+    void handleNewBlock(SchedulerMessage *msg);
+
+    void handleNewTx(SchedulerMessage *msg);
+
+    /*! Self-scheduled message for nodes marked as miners.
+     * Steps:
+     * Collect broadcasted transactions and ensure they follow our policy
+     * Verify the transactions to be included in the block
+     * Select block tip of the longest path in the blockchain, and insert the hash of its block header into the new block
+     * Solve proof of work problem
+     */
+    void mineHandler(POWMessage *msg);
 
     /*! Dump addresses.  Called at a specified interval.
      * \param msg Message that initiated the address dump.
@@ -208,6 +218,10 @@ private:
      * \param peerIndex Index of peer to send data to.
      */
     void sendOutgoingMessages(int peerIndex);
+
+    void sendBroadcasts();
+
+    void startBlockSync(int peerTo);
 
     /*! Disconnect from the specified node.
      * \param nodeIndex Index of node to disconnect
@@ -254,6 +268,9 @@ private:
     std::map<std::string, std::function<void(POWNode &, POWMessage *)> > messageHandlers;
     // these are kept separate because self messages are processed immediately
     std::map<std::string, std::function<void(POWNode &, POWMessage *)> > selfMessageHandlers;
+    std::map<std::string, std::function<void(POWNode &, SchedulerMessage *)> > simulationScheduleHandlers;
+
+    std::unique_ptr<Blockchain> blockchain;
 
     std::map<int, cGate*> nodeIndexToGateMap;
     int versionNumber;
@@ -264,7 +281,11 @@ private:
     int numAddrRelay;
     int addrRelayVecSize;
     int dumpAddressesInterval;
+    int blocksPerFile;
+    bool isMiner;
+    int blockSyncRecency;
     double randomAddressFraction;
+    int coinbaseOutput;
     bool newNetwork;
     std::vector<int> defaultNodes;
     std::unique_ptr<MessageGenerator> messageGen;
@@ -275,7 +296,9 @@ private:
     int threadScheduleInterval;
     int currentMessagesProcessed;  // counter for number of messages that have been processed in one loop
     std::string addressesFile;
+    std::string blocksDir;
     std::string dataDir;
+    POWNodeState state;
 };
 
 Define_Module(POWNode)

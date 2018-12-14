@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by nedtool 5.4 from pow_message.msg.
+// Generated file, do not edit! Created by nedtool 5.4 from messages/tx_message.msg.
 //
 
 // Disable warnings about unused variables, empty switch stmts, etc:
@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include <sstream>
-#include "pow_message_m.h"
+#include "tx_message_m.h"
 
 namespace omnetpp {
 
@@ -177,104 +177,63 @@ inline std::ostream& operator<<(std::ostream& out, const std::vector<T,A>& vec)
     return out;
 }
 
-Register_Class(POWMessage)
+Register_Class(TxMessage)
 
-POWMessage::POWMessage(const char *name, short kind) : ::omnetpp::cMessage(name,kind)
+TxMessage::TxMessage(const char *name, short kind) : ::POWMessage(name,kind)
 {
-    this->source = 0;
-    this->versionNo = 0;
 }
 
-POWMessage::POWMessage(const POWMessage& other) : ::omnetpp::cMessage(other)
+TxMessage::TxMessage(const TxMessage& other) : ::POWMessage(other)
 {
     copy(other);
 }
 
-POWMessage::~POWMessage()
+TxMessage::~TxMessage()
 {
 }
 
-POWMessage& POWMessage::operator=(const POWMessage& other)
+TxMessage& TxMessage::operator=(const TxMessage& other)
 {
     if (this==&other) return *this;
-    ::omnetpp::cMessage::operator=(other);
+    ::POWMessage::operator=(other);
     copy(other);
     return *this;
 }
 
-void POWMessage::copy(const POWMessage& other)
+void TxMessage::copy(const TxMessage& other)
 {
-    this->data = other.data;
-    this->command = other.command;
-    this->source = other.source;
-    this->versionNo = other.versionNo;
+    this->tx = other.tx;
 }
 
-void POWMessage::parsimPack(omnetpp::cCommBuffer *b) const
+void TxMessage::parsimPack(omnetpp::cCommBuffer *b) const
 {
-    ::omnetpp::cMessage::parsimPack(b);
-    doParsimPacking(b,this->data);
-    doParsimPacking(b,this->command);
-    doParsimPacking(b,this->source);
-    doParsimPacking(b,this->versionNo);
+    ::POWMessage::parsimPack(b);
+    doParsimPacking(b,this->tx);
 }
 
-void POWMessage::parsimUnpack(omnetpp::cCommBuffer *b)
+void TxMessage::parsimUnpack(omnetpp::cCommBuffer *b)
 {
-    ::omnetpp::cMessage::parsimUnpack(b);
-    doParsimUnpacking(b,this->data);
-    doParsimUnpacking(b,this->command);
-    doParsimUnpacking(b,this->source);
-    doParsimUnpacking(b,this->versionNo);
+    ::POWMessage::parsimUnpack(b);
+    doParsimUnpacking(b,this->tx);
 }
 
-const char * POWMessage::getData() const
+Transaction& TxMessage::getTx()
 {
-    return this->data.c_str();
+    return this->tx;
 }
 
-void POWMessage::setData(const char * data)
+void TxMessage::setTx(const Transaction& tx)
 {
-    this->data = data;
+    this->tx = tx;
 }
 
-const char * POWMessage::getCommand() const
-{
-    return this->command.c_str();
-}
-
-void POWMessage::setCommand(const char * command)
-{
-    this->command = command;
-}
-
-int POWMessage::getSource() const
-{
-    return this->source;
-}
-
-void POWMessage::setSource(int source)
-{
-    this->source = source;
-}
-
-int POWMessage::getVersionNo() const
-{
-    return this->versionNo;
-}
-
-void POWMessage::setVersionNo(int versionNo)
-{
-    this->versionNo = versionNo;
-}
-
-class POWMessageDescriptor : public omnetpp::cClassDescriptor
+class TxMessageDescriptor : public omnetpp::cClassDescriptor
 {
   private:
     mutable const char **propertynames;
   public:
-    POWMessageDescriptor();
-    virtual ~POWMessageDescriptor();
+    TxMessageDescriptor();
+    virtual ~TxMessageDescriptor();
 
     virtual bool doesSupport(omnetpp::cObject *obj) const override;
     virtual const char **getPropertyNames() const override;
@@ -296,24 +255,24 @@ class POWMessageDescriptor : public omnetpp::cClassDescriptor
     virtual void *getFieldStructValuePointer(void *object, int field, int i) const override;
 };
 
-Register_ClassDescriptor(POWMessageDescriptor)
+Register_ClassDescriptor(TxMessageDescriptor)
 
-POWMessageDescriptor::POWMessageDescriptor() : omnetpp::cClassDescriptor("POWMessage", "omnetpp::cMessage")
+TxMessageDescriptor::TxMessageDescriptor() : omnetpp::cClassDescriptor("TxMessage", "POWMessage")
 {
     propertynames = nullptr;
 }
 
-POWMessageDescriptor::~POWMessageDescriptor()
+TxMessageDescriptor::~TxMessageDescriptor()
 {
     delete[] propertynames;
 }
 
-bool POWMessageDescriptor::doesSupport(omnetpp::cObject *obj) const
+bool TxMessageDescriptor::doesSupport(omnetpp::cObject *obj) const
 {
-    return dynamic_cast<POWMessage *>(obj)!=nullptr;
+    return dynamic_cast<TxMessage *>(obj)!=nullptr;
 }
 
-const char **POWMessageDescriptor::getPropertyNames() const
+const char **TxMessageDescriptor::getPropertyNames() const
 {
     if (!propertynames) {
         static const char *names[] = {  nullptr };
@@ -324,19 +283,19 @@ const char **POWMessageDescriptor::getPropertyNames() const
     return propertynames;
 }
 
-const char *POWMessageDescriptor::getProperty(const char *propertyname) const
+const char *TxMessageDescriptor::getProperty(const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     return basedesc ? basedesc->getProperty(propertyname) : nullptr;
 }
 
-int POWMessageDescriptor::getFieldCount() const
+int TxMessageDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 4+basedesc->getFieldCount() : 4;
+    return basedesc ? 1+basedesc->getFieldCount() : 1;
 }
 
-unsigned int POWMessageDescriptor::getFieldTypeFlags(int field) const
+unsigned int TxMessageDescriptor::getFieldTypeFlags(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -345,15 +304,12 @@ unsigned int POWMessageDescriptor::getFieldTypeFlags(int field) const
         field -= basedesc->getFieldCount();
     }
     static unsigned int fieldTypeFlags[] = {
-        FD_ISEDITABLE,
-        FD_ISEDITABLE,
-        FD_ISEDITABLE,
-        FD_ISEDITABLE,
+        FD_ISCOMPOUND,
     };
-    return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<1) ? fieldTypeFlags[field] : 0;
 }
 
-const char *POWMessageDescriptor::getFieldName(int field) const
+const char *TxMessageDescriptor::getFieldName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -362,26 +318,20 @@ const char *POWMessageDescriptor::getFieldName(int field) const
         field -= basedesc->getFieldCount();
     }
     static const char *fieldNames[] = {
-        "data",
-        "command",
-        "source",
-        "versionNo",
+        "tx",
     };
-    return (field>=0 && field<4) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<1) ? fieldNames[field] : nullptr;
 }
 
-int POWMessageDescriptor::findField(const char *fieldName) const
+int TxMessageDescriptor::findField(const char *fieldName) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount() : 0;
-    if (fieldName[0]=='d' && strcmp(fieldName, "data")==0) return base+0;
-    if (fieldName[0]=='c' && strcmp(fieldName, "command")==0) return base+1;
-    if (fieldName[0]=='s' && strcmp(fieldName, "source")==0) return base+2;
-    if (fieldName[0]=='v' && strcmp(fieldName, "versionNo")==0) return base+3;
+    if (fieldName[0]=='t' && strcmp(fieldName, "tx")==0) return base+0;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
-const char *POWMessageDescriptor::getFieldTypeString(int field) const
+const char *TxMessageDescriptor::getFieldTypeString(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -390,15 +340,12 @@ const char *POWMessageDescriptor::getFieldTypeString(int field) const
         field -= basedesc->getFieldCount();
     }
     static const char *fieldTypeStrings[] = {
-        "string",
-        "string",
-        "int",
-        "int",
+        "Transaction",
     };
-    return (field>=0 && field<4) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<1) ? fieldTypeStrings[field] : nullptr;
 }
 
-const char **POWMessageDescriptor::getFieldPropertyNames(int field) const
+const char **TxMessageDescriptor::getFieldPropertyNames(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -411,7 +358,7 @@ const char **POWMessageDescriptor::getFieldPropertyNames(int field) const
     }
 }
 
-const char *POWMessageDescriptor::getFieldProperty(int field, const char *propertyname) const
+const char *TxMessageDescriptor::getFieldProperty(int field, const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -424,7 +371,7 @@ const char *POWMessageDescriptor::getFieldProperty(int field, const char *proper
     }
 }
 
-int POWMessageDescriptor::getFieldArraySize(void *object, int field) const
+int TxMessageDescriptor::getFieldArraySize(void *object, int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -432,13 +379,13 @@ int POWMessageDescriptor::getFieldArraySize(void *object, int field) const
             return basedesc->getFieldArraySize(object, field);
         field -= basedesc->getFieldCount();
     }
-    POWMessage *pp = (POWMessage *)object; (void)pp;
+    TxMessage *pp = (TxMessage *)object; (void)pp;
     switch (field) {
         default: return 0;
     }
 }
 
-const char *POWMessageDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
+const char *TxMessageDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -446,13 +393,13 @@ const char *POWMessageDescriptor::getFieldDynamicTypeString(void *object, int fi
             return basedesc->getFieldDynamicTypeString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    POWMessage *pp = (POWMessage *)object; (void)pp;
+    TxMessage *pp = (TxMessage *)object; (void)pp;
     switch (field) {
         default: return nullptr;
     }
 }
 
-std::string POWMessageDescriptor::getFieldValueAsString(void *object, int field, int i) const
+std::string TxMessageDescriptor::getFieldValueAsString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -460,17 +407,14 @@ std::string POWMessageDescriptor::getFieldValueAsString(void *object, int field,
             return basedesc->getFieldValueAsString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    POWMessage *pp = (POWMessage *)object; (void)pp;
+    TxMessage *pp = (TxMessage *)object; (void)pp;
     switch (field) {
-        case 0: return oppstring2string(pp->getData());
-        case 1: return oppstring2string(pp->getCommand());
-        case 2: return long2string(pp->getSource());
-        case 3: return long2string(pp->getVersionNo());
+        case 0: {std::stringstream out; out << pp->getTx(); return out.str();}
         default: return "";
     }
 }
 
-bool POWMessageDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
+bool TxMessageDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -478,17 +422,13 @@ bool POWMessageDescriptor::setFieldValueAsString(void *object, int field, int i,
             return basedesc->setFieldValueAsString(object,field,i,value);
         field -= basedesc->getFieldCount();
     }
-    POWMessage *pp = (POWMessage *)object; (void)pp;
+    TxMessage *pp = (TxMessage *)object; (void)pp;
     switch (field) {
-        case 0: pp->setData((value)); return true;
-        case 1: pp->setCommand((value)); return true;
-        case 2: pp->setSource(string2long(value)); return true;
-        case 3: pp->setVersionNo(string2long(value)); return true;
         default: return false;
     }
 }
 
-const char *POWMessageDescriptor::getFieldStructName(int field) const
+const char *TxMessageDescriptor::getFieldStructName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -497,11 +437,12 @@ const char *POWMessageDescriptor::getFieldStructName(int field) const
         field -= basedesc->getFieldCount();
     }
     switch (field) {
+        case 0: return omnetpp::opp_typename(typeid(Transaction));
         default: return nullptr;
     };
 }
 
-void *POWMessageDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
+void *TxMessageDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -509,8 +450,9 @@ void *POWMessageDescriptor::getFieldStructValuePointer(void *object, int field, 
             return basedesc->getFieldStructValuePointer(object, field, i);
         field -= basedesc->getFieldCount();
     }
-    POWMessage *pp = (POWMessage *)object; (void)pp;
+    TxMessage *pp = (TxMessage *)object; (void)pp;
     switch (field) {
+        case 0: return (void *)(&pp->getTx()); break;
         default: return nullptr;
     }
 }

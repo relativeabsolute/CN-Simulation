@@ -10,6 +10,7 @@
 
 #include <omnetpp.h>
 #include <memory>
+#include <string>
 #include <iostream>
 #include <vector>
 #include "tx.h"
@@ -17,30 +18,38 @@
 typedef std::vector<Transaction>::size_type txs_size;
 
 struct BlockHeader {
+    static const int64_t NULL_HASH = 0;
+
     int64_t hash;
     int64_t parentHash;
     txs_size numTx;
+    int creationTime;
+
+    BlockHeader() {}
 
     friend std::istream &operator>>(std::istream &input, BlockHeader &header) {
-        input >> header.hash >> header.parentHash >> header.numTx;
+        input >> header.hash >> header.parentHash >> header.numTx >> header.creationTime;
         return input;
     }
 
-    friend std::ostream &operator<<(std::ostream &output, BlockHeader &header) {
-        output << header.hash << header.parentHash << header.numTx;
+    friend std::ostream &operator<<(std::ostream &output, const BlockHeader &header) {
+        output << header.hash << header.parentHash << header.numTx << header.creationTime;
         return output;
     }
 };
 
 class Block {
 public:
+    Block() {}
+
     friend std::istream &operator>>(std::istream &input, Block &block) {
-        fileReader >> block.header;
-        for (txs_size i = 0; i < block.header->numTx; ++i) {
+        input >> block.header;
+        for (txs_size i = 0; i < block.header.numTx; ++i) {
             Transaction temp;
-            fileReader >> temp;
+            input >> temp;
             block.transactions.push_back(temp);
         }
+        return input;
     }
 
     friend std::ostream &operator<<(std::ostream &output, const Block &block) {
@@ -48,13 +57,46 @@ public:
         for (auto tx : block.transactions) {
             output << tx;
         }
+        return output;
     }
 
-    std::unique_ptr<BlockHeader> getHeader() const {
+    BlockHeader getHeader() const {
         return header;
     }
+
+    void setPrevBlock(std::shared_ptr<Block> newPrev) {
+        prev = newPrev;
+    }
+
+    std::shared_ptr<Block> prevBlock() const {
+        return prev;
+    }
+
+    static std::shared_ptr<Block> create(int miner, int reward, int64_t parentHash, int time, const std::vector<Transaction> tx) {
+        auto result = std::make_shared<Block>();
+        result->header.creationTime = time;
+        result->header.parentHash = parentHash;
+        result->header.hash = parentHash + 1;
+        result->header.numTx = tx.size() + 1;
+        Transaction coinbase;
+        TransactionInput txIn;
+        txIn.prevTxHash = TransactionInput::COINBASE_HASH;
+        txIn.prevTxN = TransactionInput::COINBASE_N;
+        txIn.signature = 0;
+        coinbase.inputs.push_back(txIn);
+        TransactionOutput txOut;
+        txOut.publicKey = miner * 2;
+        txOut.value = reward;
+        coinbase.outputs.push_back(txOut);
+        result->transactions.push_back(coinbase);
+        std::copy(tx.begin(), tx.end(), std::back_inserter(result->transactions));
+        return result;
+    }
+
+    std::vector<Transaction> getTx() const { return transactions; }
 private:
-    std::unique_ptr<BlockHeader> header;
+    std::shared_ptr<Block> prev;
+    BlockHeader header;
     std::vector<Transaction> transactions;
 };
 

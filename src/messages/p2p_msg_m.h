@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by nedtool 5.4 from p2p_msg.msg.
+// Generated file, do not edit! Created by nedtool 5.4 from messages/p2p_msg.msg.
 //
 
 #if defined(__clang__)
@@ -19,7 +19,7 @@
 
 
 /**
- * Class generated from <tt>p2p_msg.msg:1</tt> by nedtool.
+ * Class generated from <tt>messages/p2p_msg.msg:1</tt> by nedtool.
  * <pre>
  * message P2P_Msg
  * {

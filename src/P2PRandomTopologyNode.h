@@ -9,7 +9,7 @@
 #define P2PRANDOMTOPOLOGYNODE_H_
 
 #include "P2PNode.h"
-#include "p2p_msg_m.h"
+#include "messages/p2p_msg_m.h"
 
 /*! Basic implementation of Peer to Peer node.
  * Results in a randomly interconnected peer to peer network, where messages are forwarded to destination

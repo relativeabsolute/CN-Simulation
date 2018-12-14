@@ -19,9 +19,11 @@ simple POWNode extends P2PNode {
     parameters:
         string defaultNodeList;
         bool newNetwork;
+        string minersList;
         string dataDir = default("data");
         bool online = default(true);
         int version = default(1);
+        int blocksPerFile = default(10);
         int minAcceptedVersion = default(1);
         int threadScheduleInterval = default(30); // interval at which to check data queues, etc.
         int maxMessageProcess = default(4);  // number of messages to process before passing the execution context
@@ -30,12 +32,46 @@ simple POWNode extends P2PNode {
         int addrRelayVecSize = default(10); // limit for relay check
         int dumpAddressesInterval = default(120);  // interval to dump addresses in seconds
         double randomAddressFraction = default(1);  // fraction from 0 to 1
+        int blockSyncRecency = default(240); // number of seconds a block for a block to be considered young
+        int coinbaseOutput;
     @class(POWNode);
+    gates:
+        input fromScheduler;
+}
+
+simple POWScheduler {
+    parameters:
+        string scheduleFileName;
+        int timeToStartSchedule;
+        int count;
+    @class(POWScheduler);   
+    gates:
+        output toNodes[count];
 }
 
 network POWNetwork {
     parameters:
+        string scheduleFileName = default("schedule.txt");
         int count;
+        int timeToStartSchedule;
+        string miners;
+        string netDefaultNodeList;
+        int coinbaseOutput;  // output in cents of a coinbase transaction (creation of a new coin)
+        bool isNewNetwork;
     submodules:
-        node[count]: POWNode;
+        node[count]: POWNode {
+            minersList = miners;
+            defaultNodeList = netDefaultNodeList;
+            newNetwork = isNewNetwork;
+            coinbaseOutput = coinbaseOutput;
+        }
+        scheduler : POWScheduler {
+            scheduleFileName = scheduleFileName;
+            count = count;
+            timeToStartSchedule = timeToStartSchedule;
+        }
+    connections:
+        for i=0..count-1 {
+            scheduler.toNodes[i] --> node[i].fromScheduler;
+        }
 }

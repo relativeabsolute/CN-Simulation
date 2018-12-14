@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by nedtool 5.4 from pow_message.msg.
+// Generated file, do not edit! Created by nedtool 5.4 from messages/pow_message.msg.
 //
 
 #if defined(__clang__)
@@ -19,11 +19,10 @@
 
 
 /**
- * Class generated from <tt>pow_message.msg:16</tt> by nedtool.
+ * Class generated from <tt>messages/pow_message.msg:16</tt> by nedtool.
  * <pre>
  * message POWMessage
  * {
- *     string data; // xml data
  *     string command; // name of command to execute upon reaching destination 
  *     int source; // source node index of the sending node
  *     int versionNo;  // protocol version number of the message
@@ -33,7 +32,6 @@
 class POWMessage : public ::omnetpp::cMessage
 {
   protected:
-    ::omnetpp::opp_string data;
     ::omnetpp::opp_string command;
     int source;
     int versionNo;
@@ -55,8 +53,6 @@ class POWMessage : public ::omnetpp::cMessage
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     // field getter/setter methods
-    virtual const char * getData() const;
-    virtual void setData(const char * data);
     virtual const char * getCommand() const;
     virtual void setCommand(const char * command);
     virtual int getSource() const;

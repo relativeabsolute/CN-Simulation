@@ -13,9 +13,15 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 //
 
-message POWMessage {
-    string data; // xml data
-    string command; // name of command to execute upon reaching destination 
-    int source; // source node index of the sending node
-    int versionNo;  // protocol version number of the message
+cplusplus {{
+    #include "pow_message_m.h"
+    #include <vector>
+    typedef std::vector<int> AddressesVector;
+}};
+
+message POWMessage;
+class noncobject AddressesVector;
+
+message AddrsMessage extends POWMessage {
+    AddressesVector addresses;
 }

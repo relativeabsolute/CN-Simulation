@@ -12,7 +12,8 @@
 #include <set>
 #include <deque>
 #include <bitset>
-#include "pow_message_m.h"
+#include "blockchain/block.h"
+#include "messages/pow_message_m.h"
 
 // TODO: may want to separate flags to be stored by node and by node state
 enum POWNodeFlags {
@@ -23,7 +24,8 @@ enum POWNodeFlags {
     Disconnect,
     PauseSend,
     PauseReceive,
-    NumFlags
+    RequestHeaders,
+    NumFlags,
 };
 
 /*! Structure representing data a node knows about a peer.
@@ -40,6 +42,13 @@ struct POWNodeData {
     // std::set<int> knownAddresses
 
     int version;
+
+    int knownHeight;
+
+    // blocks to be sent to this peer in the sendOutgoingData phase
+    std::vector<std::shared_ptr<Block>> blocksToSend;
+
+    int64_t pubHash;
 };
 
 #endif /* POW_NODE_DATA_H_ */

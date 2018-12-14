@@ -30,12 +30,35 @@ PROJECTRELATIVE_PATH = src
 O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 
 # Object files for local .cpp, .msg and .sm files
-OBJS = $O/addr_manager.o $O/P2PRandomTopologyNode.o $O/POWNode.o $O/p2p_msg_m.o $O/pow_message_m.o
+OBJS = \
+    $O/addr_manager.o \
+    $O/P2PRandomTopologyNode.o \
+    $O/POWNode.o \
+    $O/POWScheduler.o \
+    $O/blockchain/blockchain.o \
+    $O/messages/addrs_message_m.o \
+    $O/messages/blocks_message_m.o \
+    $O/messages/get_headers_message_m.o \
+    $O/messages/headers_message_m.o \
+    $O/messages/p2p_msg_m.o \
+    $O/messages/pow_message_m.o \
+    $O/messages/reject_message_m.o \
+    $O/messages/scheduler_message_m.o \
+    $O/messages/tx_message_m.o \
+    $O/messages/version_message_m.o
 
 # Message files
 MSGFILES = \
-    p2p_msg.msg \
-    pow_message.msg
+    messages/addrs_message.msg \
+    messages/blocks_message.msg \
+    messages/get_headers_message.msg \
+    messages/headers_message.msg \
+    messages/p2p_msg.msg \
+    messages/pow_message.msg \
+    messages/reject_message.msg \
+    messages/scheduler_message.msg \
+    messages/tx_message.msg \
+    messages/version_message.msg
 
 # SM files
 SMFILES =

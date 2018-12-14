@@ -1,0 +1,3 @@
+0 1 shedulenewblock
+100 1 schedulenewtx 2 20
+200 3 sechedulenewblock

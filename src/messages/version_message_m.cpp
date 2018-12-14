@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by nedtool 5.4 from p2p_msg.msg.
+// Generated file, do not edit! Created by nedtool 5.4 from messages/version_message.msg.
 //
 
 // Disable warnings about unused variables, empty switch stmts, etc:
@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include <sstream>
-#include "p2p_msg_m.h"
+#include "version_message_m.h"
 
 namespace omnetpp {
 
@@ -177,92 +177,64 @@ inline std::ostream& operator<<(std::ostream& out, const std::vector<T,A>& vec)
     return out;
 }
 
-Register_Class(P2P_Msg)
+Register_Class(VersionMessage)
 
-P2P_Msg::P2P_Msg(const char *name, short kind) : ::omnetpp::cMessage(name,kind)
+VersionMessage::VersionMessage(const char *name, short kind) : ::POWMessage(name,kind)
 {
-    this->source = 0;
-    this->destination = 0;
-    this->hopCount = 0;
+    this->chainHeight = 0;
 }
 
-P2P_Msg::P2P_Msg(const P2P_Msg& other) : ::omnetpp::cMessage(other)
+VersionMessage::VersionMessage(const VersionMessage& other) : ::POWMessage(other)
 {
     copy(other);
 }
 
-P2P_Msg::~P2P_Msg()
+VersionMessage::~VersionMessage()
 {
 }
 
-P2P_Msg& P2P_Msg::operator=(const P2P_Msg& other)
+VersionMessage& VersionMessage::operator=(const VersionMessage& other)
 {
     if (this==&other) return *this;
-    ::omnetpp::cMessage::operator=(other);
+    ::POWMessage::operator=(other);
     copy(other);
     return *this;
 }
 
-void P2P_Msg::copy(const P2P_Msg& other)
+void VersionMessage::copy(const VersionMessage& other)
 {
-    this->source = other.source;
-    this->destination = other.destination;
-    this->hopCount = other.hopCount;
+    this->chainHeight = other.chainHeight;
 }
 
-void P2P_Msg::parsimPack(omnetpp::cCommBuffer *b) const
+void VersionMessage::parsimPack(omnetpp::cCommBuffer *b) const
 {
-    ::omnetpp::cMessage::parsimPack(b);
-    doParsimPacking(b,this->source);
-    doParsimPacking(b,this->destination);
-    doParsimPacking(b,this->hopCount);
+    ::POWMessage::parsimPack(b);
+    doParsimPacking(b,this->chainHeight);
 }
 
-void P2P_Msg::parsimUnpack(omnetpp::cCommBuffer *b)
+void VersionMessage::parsimUnpack(omnetpp::cCommBuffer *b)
 {
-    ::omnetpp::cMessage::parsimUnpack(b);
-    doParsimUnpacking(b,this->source);
-    doParsimUnpacking(b,this->destination);
-    doParsimUnpacking(b,this->hopCount);
+    ::POWMessage::parsimUnpack(b);
+    doParsimUnpacking(b,this->chainHeight);
 }
 
-int P2P_Msg::getSource() const
+int VersionMessage::getChainHeight() const
 {
-    return this->source;
+    return this->chainHeight;
 }
 
-void P2P_Msg::setSource(int source)
+void VersionMessage::setChainHeight(int chainHeight)
 {
-    this->source = source;
+    this->chainHeight = chainHeight;
 }
 
-int P2P_Msg::getDestination() const
-{
-    return this->destination;
-}
-
-void P2P_Msg::setDestination(int destination)
-{
-    this->destination = destination;
-}
-
-int P2P_Msg::getHopCount() const
-{
-    return this->hopCount;
-}
-
-void P2P_Msg::setHopCount(int hopCount)
-{
-    this->hopCount = hopCount;
-}
-
-class P2P_MsgDescriptor : public omnetpp::cClassDescriptor
+class VersionMessageDescriptor : public omnetpp::cClassDescriptor
 {
   private:
     mutable const char **propertynames;
   public:
-    P2P_MsgDescriptor();
-    virtual ~P2P_MsgDescriptor();
+    VersionMessageDescriptor();
+    virtual ~VersionMessageDescriptor();
 
     virtual bool doesSupport(omnetpp::cObject *obj) const override;
     virtual const char **getPropertyNames() const override;
@@ -284,24 +256,24 @@ class P2P_MsgDescriptor : public omnetpp::cClassDescriptor
     virtual void *getFieldStructValuePointer(void *object, int field, int i) const override;
 };
 
-Register_ClassDescriptor(P2P_MsgDescriptor)
+Register_ClassDescriptor(VersionMessageDescriptor)
 
-P2P_MsgDescriptor::P2P_MsgDescriptor() : omnetpp::cClassDescriptor("P2P_Msg", "omnetpp::cMessage")
+VersionMessageDescriptor::VersionMessageDescriptor() : omnetpp::cClassDescriptor("VersionMessage", "POWMessage")
 {
     propertynames = nullptr;
 }
 
-P2P_MsgDescriptor::~P2P_MsgDescriptor()
+VersionMessageDescriptor::~VersionMessageDescriptor()
 {
     delete[] propertynames;
 }
 
-bool P2P_MsgDescriptor::doesSupport(omnetpp::cObject *obj) const
+bool VersionMessageDescriptor::doesSupport(omnetpp::cObject *obj) const
 {
-    return dynamic_cast<P2P_Msg *>(obj)!=nullptr;
+    return dynamic_cast<VersionMessage *>(obj)!=nullptr;
 }
 
-const char **P2P_MsgDescriptor::getPropertyNames() const
+const char **VersionMessageDescriptor::getPropertyNames() const
 {
     if (!propertynames) {
         static const char *names[] = {  nullptr };
@@ -312,19 +284,19 @@ const char **P2P_MsgDescriptor::getPropertyNames() const
     return propertynames;
 }
 
-const char *P2P_MsgDescriptor::getProperty(const char *propertyname) const
+const char *VersionMessageDescriptor::getProperty(const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     return basedesc ? basedesc->getProperty(propertyname) : nullptr;
 }
 
-int P2P_MsgDescriptor::getFieldCount() const
+int VersionMessageDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 3+basedesc->getFieldCount() : 3;
+    return basedesc ? 1+basedesc->getFieldCount() : 1;
 }
 
-unsigned int P2P_MsgDescriptor::getFieldTypeFlags(int field) const
+unsigned int VersionMessageDescriptor::getFieldTypeFlags(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -334,13 +306,11 @@ unsigned int P2P_MsgDescriptor::getFieldTypeFlags(int field) const
     }
     static unsigned int fieldTypeFlags[] = {
         FD_ISEDITABLE,
-        FD_ISEDITABLE,
-        FD_ISEDITABLE,
     };
-    return (field>=0 && field<3) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<1) ? fieldTypeFlags[field] : 0;
 }
 
-const char *P2P_MsgDescriptor::getFieldName(int field) const
+const char *VersionMessageDescriptor::getFieldName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -349,24 +319,20 @@ const char *P2P_MsgDescriptor::getFieldName(int field) const
         field -= basedesc->getFieldCount();
     }
     static const char *fieldNames[] = {
-        "source",
-        "destination",
-        "hopCount",
+        "chainHeight",
     };
-    return (field>=0 && field<3) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<1) ? fieldNames[field] : nullptr;
 }
 
-int P2P_MsgDescriptor::findField(const char *fieldName) const
+int VersionMessageDescriptor::findField(const char *fieldName) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount() : 0;
-    if (fieldName[0]=='s' && strcmp(fieldName, "source")==0) return base+0;
-    if (fieldName[0]=='d' && strcmp(fieldName, "destination")==0) return base+1;
-    if (fieldName[0]=='h' && strcmp(fieldName, "hopCount")==0) return base+2;
+    if (fieldName[0]=='c' && strcmp(fieldName, "chainHeight")==0) return base+0;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
-const char *P2P_MsgDescriptor::getFieldTypeString(int field) const
+const char *VersionMessageDescriptor::getFieldTypeString(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -376,13 +342,11 @@ const char *P2P_MsgDescriptor::getFieldTypeString(int field) const
     }
     static const char *fieldTypeStrings[] = {
         "int",
-        "int",
-        "int",
     };
-    return (field>=0 && field<3) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<1) ? fieldTypeStrings[field] : nullptr;
 }
 
-const char **P2P_MsgDescriptor::getFieldPropertyNames(int field) const
+const char **VersionMessageDescriptor::getFieldPropertyNames(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -395,7 +359,7 @@ const char **P2P_MsgDescriptor::getFieldPropertyNames(int field) const
     }
 }
 
-const char *P2P_MsgDescriptor::getFieldProperty(int field, const char *propertyname) const
+const char *VersionMessageDescriptor::getFieldProperty(int field, const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -408,7 +372,7 @@ const char *P2P_MsgDescriptor::getFieldProperty(int field, const char *propertyn
     }
 }
 
-int P2P_MsgDescriptor::getFieldArraySize(void *object, int field) const
+int VersionMessageDescriptor::getFieldArraySize(void *object, int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -416,13 +380,13 @@ int P2P_MsgDescriptor::getFieldArraySize(void *object, int field) const
             return basedesc->getFieldArraySize(object, field);
         field -= basedesc->getFieldCount();
     }
-    P2P_Msg *pp = (P2P_Msg *)object; (void)pp;
+    VersionMessage *pp = (VersionMessage *)object; (void)pp;
     switch (field) {
         default: return 0;
     }
 }
 
-const char *P2P_MsgDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
+const char *VersionMessageDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -430,13 +394,13 @@ const char *P2P_MsgDescriptor::getFieldDynamicTypeString(void *object, int field
             return basedesc->getFieldDynamicTypeString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    P2P_Msg *pp = (P2P_Msg *)object; (void)pp;
+    VersionMessage *pp = (VersionMessage *)object; (void)pp;
     switch (field) {
         default: return nullptr;
     }
 }
 
-std::string P2P_MsgDescriptor::getFieldValueAsString(void *object, int field, int i) const
+std::string VersionMessageDescriptor::getFieldValueAsString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -444,16 +408,14 @@ std::string P2P_MsgDescriptor::getFieldValueAsString(void *object, int field, in
             return basedesc->getFieldValueAsString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    P2P_Msg *pp = (P2P_Msg *)object; (void)pp;
+    VersionMessage *pp = (VersionMessage *)object; (void)pp;
     switch (field) {
-        case 0: return long2string(pp->getSource());
-        case 1: return long2string(pp->getDestination());
-        case 2: return long2string(pp->getHopCount());
+        case 0: return long2string(pp->getChainHeight());
         default: return "";
     }
 }
 
-bool P2P_MsgDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
+bool VersionMessageDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -461,16 +423,14 @@ bool P2P_MsgDescriptor::setFieldValueAsString(void *object, int field, int i, co
             return basedesc->setFieldValueAsString(object,field,i,value);
         field -= basedesc->getFieldCount();
     }
-    P2P_Msg *pp = (P2P_Msg *)object; (void)pp;
+    VersionMessage *pp = (VersionMessage *)object; (void)pp;
     switch (field) {
-        case 0: pp->setSource(string2long(value)); return true;
-        case 1: pp->setDestination(string2long(value)); return true;
-        case 2: pp->setHopCount(string2long(value)); return true;
+        case 0: pp->setChainHeight(string2long(value)); return true;
         default: return false;
     }
 }
 
-const char *P2P_MsgDescriptor::getFieldStructName(int field) const
+const char *VersionMessageDescriptor::getFieldStructName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -483,7 +443,7 @@ const char *P2P_MsgDescriptor::getFieldStructName(int field) const
     };
 }
 
-void *P2P_MsgDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
+void *VersionMessageDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -491,7 +451,7 @@ void *P2P_MsgDescriptor::getFieldStructValuePointer(void *object, int field, int
             return basedesc->getFieldStructValuePointer(object, field, i);
         field -= basedesc->getFieldCount();
     }
-    P2P_Msg *pp = (P2P_Msg *)object; (void)pp;
+    VersionMessage *pp = (VersionMessage *)object; (void)pp;
     switch (field) {
         default: return nullptr;
     }
