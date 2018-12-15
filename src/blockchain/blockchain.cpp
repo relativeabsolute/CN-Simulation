@@ -113,8 +113,8 @@ int64_t Blockchain::getMaxTxHash() const {
     }
     int64_t prevMax = 0;
     for (auto tx : getTip().getTx()) {
-        if (tx.hash > prevMax) {
-            prevMax = tx.hash;
+        if (tx.second.hash > prevMax) {
+            prevMax = tx.second.hash;
         }
     }
     return prevMax;

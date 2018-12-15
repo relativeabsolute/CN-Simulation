@@ -47,7 +47,7 @@ public:
         for (txs_size i = 0; i < block.header.numTx; ++i) {
             Transaction temp;
             input >> temp;
-            block.transactions.push_back(temp);
+            block.transactions.insert(std::make_pair(temp.hash, temp));
         }
         return input;
     }
@@ -55,7 +55,7 @@ public:
     friend std::ostream &operator<<(std::ostream &output, const Block &block) {
         output << block.header;
         for (auto tx : block.transactions) {
-            output << tx;
+            output << tx.second;
         }
         return output;
     }
@@ -64,12 +64,17 @@ public:
         return header;
     }
 
-    static Block create(int miner, int reward, int64_t parentHash, int time, const std::vector<Transaction> tx) {
+    void addTransaction(const Transaction &tx) {
+        transactions[tx.hash] = tx;
+        header.numTx++;
+    }
+
+    static Block create(int miner, int coinbaseHash, int reward, int64_t parentHash, int time) {
         Block result;
         result.header.creationTime = time;
         result.header.parentHash = parentHash;
         result.header.hash = parentHash + 1;
-        result.header.numTx = tx.size() + 1;
+        result.header.numTx = 1;
         Transaction coinbase;
         TransactionInput txIn;
         txIn.prevTxHash = TransactionInput::COINBASE_HASH;
@@ -80,15 +85,39 @@ public:
         txOut.publicKey = miner * 2;
         txOut.value = reward;
         coinbase.outputs.push_back(txOut);
-        result.transactions.push_back(coinbase);
-        std::copy(tx.begin(), tx.end(), std::back_inserter(result.transactions));
+        coinbase.hash = coinbaseHash;
+        result.transactions[coinbaseHash] = coinbase;
         return result;
     }
 
-    std::vector<Transaction> getTx() const { return transactions; }
+    std::string to_string() const {
+        std::stringstream strBuf;
+        strBuf << "Block header: " << std::endl <<
+                "\tHash = " << header.hash << std::endl <<
+                "\tParent hash = " << header.parentHash << std::endl <<
+                "\tCreation time = " << header.creationTime << std::endl <<
+                "\tNum tx = " << header.numTx << std::endl <<
+                "Transactions:" << std::endl;
+        for (auto txPair : transactions) {
+            strBuf << "\tInputs:" << std::endl;
+            for (auto txIn : txPair.second.inputs) {
+                strBuf << "\t\tPrevious tx hash: " << txIn.prevTxHash << std::endl <<
+                        "\t\tPrevious output index: " << txIn.prevTxN << std::endl <<
+                        "\t\tSignature: " << txIn.signature << std::endl;
+            }
+            strBuf << "\tOutputs:" << std::endl;
+            for (auto txOut : txPair.second.outputs) {
+                strBuf << "\t\tPublic key: " << txOut.publicKey << std::endl <<
+                        "\t\tValue: " << txOut.value << std::endl;
+            }
+        }
+        return strBuf.str();
+    }
+
+    std::map<int64_t, Transaction> getTx() const { return transactions; }
 private:
     BlockHeader header;
-    std::vector<Transaction> transactions;
+    std::map<int64_t, Transaction> transactions;
 };
 
 #endif /* BLOCKCHAIN_BLOCK_H_ */

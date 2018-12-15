@@ -17,7 +17,7 @@
 
 namespace fs = boost::filesystem;
 
-POWNode::POWNode() : messageGen(nullptr) {
+POWNode::POWNode() : messageGen(nullptr) , coins(0){
 }
 
 POWNode::~POWNode() {
@@ -102,9 +102,11 @@ void POWNode::setupMessageHandlers() {
     messageHandlers[MessageGenerator::MESSAGE_REJECT_COMMAND] = &POWNode::handleRejectMessage;
     messageHandlers[MessageGenerator::MESSAGE_GETADDR_COMMAND] = &POWNode::handleGetAddrMessage;
     messageHandlers[MessageGenerator::MESSAGE_ADDRS_COMMAND] = &POWNode::handleAddrsMessage;
+    messageHandlers[MessageGenerator::MESSAGE_GETHEADERS_COMMAND] = &POWNode::handleGetHeadersMessage;
     messageHandlers[MessageGenerator::MESSAGE_HEADERS_COMMAND] = &POWNode::handleHeadersMessage;
     messageHandlers[MessageGenerator::MESSAGE_TX_COMMAND] = &POWNode::handleTxMessage;
     messageHandlers[MessageGenerator::MESSAGE_GETBLOCKS_COMMAND] = &POWNode::handleGetBlocksMessage;
+    messageHandlers[MessageGenerator::MESSAGE_BLOCKS_COMMAND] = &POWNode::handleBlocksMessage;
 
     if (isMiner) {
         simulationScheduleHandlers[POWScheduler::SCHEDULER_MESSAGE_NEW_BLOCK] = &POWNode::handleNewBlock;
@@ -177,6 +179,7 @@ void POWNode::readConstantParameters() {
     dataDir = par("dataDir").stringValue();
     addressesFile = (fs::path(dataDir) / ("peers" + std::to_string(getIndex()) + ".txt")).string();
     blocksDir = (fs::path(dataDir) / "blocks" / ("peer" + std::to_string(getIndex()))).string();
+    stopAddrPollingTime = par("stopAddrPollingTime").intValue();
     const char *defaultNodesStr = par("defaultNodeList").stringValue();
     defaultNodes = cStringTokenizer(defaultNodesStr).asIntVector();
     randomAddressFraction = par("randomAddressFraction").doubleValue();
@@ -292,19 +295,27 @@ void POWNode::mineHandler(POWMessage *msg) {
         // proof of work is handled by the scheduler
         // all we need to do is validate transactions
         if (blockchain->chainHeight() > 0) {
-            for (auto tx : state.unverifiedTransactions) {
-                if (std::all_of(tx.inputs.begin(), tx.inputs.end(), [&, this](TransactionInput in) {
-                    return this->blockchain->getTip().getTx()[in.prevTxHash].outputs[in.prevTxN].publicKey ==
-                            in.signature - 1; // TODO: for now don't check for double spends
-                })) {
-                    EV_DETAIL << "Transaction valid" << std::endl;
-                    state.verifiedTransactions.push_back(tx);
-                } else {
-                    EV_DETAIL << "Transaction invalid" << std::endl;
+            size_t numTransactions = state.unverifiedTransactions.size();
+            if (numTransactions > 0) {
+                EV << "Attempting to validate " << numTransactions << " transactions." << std::endl;
+                for (auto tx : state.unverifiedTransactions) {
+                    if (std::all_of(tx.inputs.begin(), tx.inputs.end(), [&, this](TransactionInput in) {
+                        return this->blockchain->getTip().getTx()[in.prevTxHash].outputs[in.prevTxN].publicKey ==
+                                in.signature - 1; // TODO: for now don't check for double spends
+                    })) {
+                        EV_DETAIL << "Transaction valid" << std::endl;
+                        state.verifiedTransactions.push_back(tx);
+                    } else {
+                        EV_DETAIL << "Transaction invalid" << std::endl;
+                    }
                 }
+                state.unverifiedTransactions.clear();
+            } else {
+                EV << "No transactions to validate." << std::endl;
             }
+        } else {
+            EV << "Don't have any blocks yet.  Waiting to validate transactions." << std::endl;
         }
-        state.unverifiedTransactions.clear();
         scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(getIndex(), MessageGenerator::MESSAGE_MINE));
     }
 }
@@ -368,7 +379,10 @@ void POWNode::pollAddresses(POWMessage *msg) {
     EV << "Polling successfully connected peers for connections." << std::endl;
     broadcastMessage(messageGen->generateMessage(meIndex, MessageGenerator::MESSAGE_GETADDR_COMMAND),
             [&, this](int peer){ return this->peers[peer]->flags.test(SuccessfullyConnected); });
-    scheduleAt(simTime() + threadScheduleInterval, messageGen->generateMessage(meIndex, MessageGenerator::MESSAGE_POLL_ADDRS));
+    simtime_t next = simTime() + threadScheduleInterval;
+    if (next < stopAddrPollingTime) {
+        scheduleAt(next, messageGen->generateMessage(meIndex, MessageGenerator::MESSAGE_POLL_ADDRS));
+    }
 }
 
 void POWNode::scheduleAddrAd(int peerIndex) {
@@ -519,11 +533,16 @@ void POWNode::handleMessage(cMessage *msg) {
 
 void POWNode::handleBlocksMessage(POWMessage *msg) {
     EV << "Handling blocks message " << msg << std::endl;
+    if (isMiner) {
+        state.verifiedTransactions.clear();
+    }
     BlocksMessage *blMsg = check_and_cast<BlocksMessage*>(msg);
+    EV << "Received " << blMsg->getBlocks().size() << " blocks from peer " << blMsg->getSource() << std::endl;
     for (auto bl : blMsg->getBlocks()) {
         blockchain->addBlock(std::move(bl));
     }
     chainHeight = blockchain->chainHeight();
+    updateOutputsSpent();
 }
 
 void POWNode::handleScheduledMessage(SchedulerMessage *msg) {
@@ -570,7 +589,7 @@ void POWNode::handleHeadersMessage(POWMessage *msg) {
             EV_WARN << "Received non continuous headers sequence from " << sourceNode << std::endl;
             return;
         }
-        if (blockchain->chainHeight() == 0 || (!foundOldest && hashLastBlock == blockchain->getTip().getHeader().hash)) {
+        if (blockchain->chainHeight() == 0 || (!foundOldest && header.parentHash == blockchain->getTip().getHeader().hash)) {
             foundOldest = true;
             requestHeader = header.hash;
         }
@@ -579,6 +598,8 @@ void POWNode::handleHeadersMessage(POWMessage *msg) {
     if (foundOldest) {
         EV << "Sending get blocks request to " << sourceNode << std::endl;
         sendToNode(messageGen->generateGetBlocksMessage(meNode, requestHeader), sourceNode);
+    } else {
+        EV << "Could not connect new block to our blockchain." << std::endl;
     }
 }
 
@@ -685,6 +706,9 @@ void POWNode::handleAddrsMessage(POWMessage *msg) {
     EV << "Received " << newAddresses.size() << " addresses from node " << messageSource << std::endl;
     // TODO: attempt to connect to some if not all of the new peers
     dynamicConnect(newAddresses);
+    broadcastMessage(messageGen->generateVersionMessage(getIndex(), blockchain->chainHeight()), [&,this](int peerIndex) {
+        return !this->peers[peerIndex]->flags.test(SuccessfullyConnected) && !this->peers[peerIndex]->flags.test(Inbound);
+    });
     addrMan->addAddresses(newAddresses);
 }
 
@@ -788,11 +812,31 @@ void POWNode::handleNewBlock(SchedulerMessage *msg) {
             EV_DETAIL << "Chain is not empty.  Adding chain tip as parent" << std::endl;
             prev = blockchain->getTip().getHeader().hash;
         }
+        EV << "New block will include " << state.verifiedTransactions.size() << " verified transactions." << std::endl;
+        int64_t maxHash = blockchain->getMaxTxHash() + 1;
+        for (auto tx : state.verifiedTransactions) {
+            if (tx.hash == maxHash) {
+                tx.hash = maxHash + 1;
+            }
+            if (tx.hash > maxHash) {
+                maxHash = tx.hash + 1;
+            }
+        }
+        Block result = Block::create(getIndex(),
+                maxHash, coinbaseOutput,
+                prev, simTime().inUnit(SimTimeUnit::SIMTIME_S));
+        for (auto tx : state.verifiedTransactions) {
+            EV << "Adding verified transaction to block" << std::endl;
+            result.addTransaction(tx);
+        }
+        EV_DETAIL << "Resulting block:" << std::endl;
+        EV_DETAIL << result.to_string() << std::endl;
         state.verifiedTransactions.clear();
-        Block result = Block::create(getIndex(), coinbaseOutput, prev, simTime().inUnit(SimTimeUnit::SIMTIME_S), state.verifiedTransactions);
         state.blocksToAnnounce.push_back(result.getHeader());
+        EV << "New block contains " << result.getTx().size() << " transactions, including coinbase." << std::endl;
         blockchain->addBlock(std::move(result));
         chainHeight = blockchain->chainHeight();
+        updateOutputsSpent();
     }
 }
 
@@ -804,25 +848,26 @@ void POWNode::handleNewTx(SchedulerMessage *msg) {
         int peer = msg->getParameters()[0];
         int amount = msg->getParameters()[1];
         TransactionOutput txOut;
+        EV << "New transaction value = " << amount << " to peer " << peer << std::endl;
         txOut.value = amount;
         txOut.publicKey = peer * 2;
-        auto prevTxVec = blockchain->getTip().getTx();
+        auto prevTxMap = blockchain->getTip().getTx();
         std::vector<TransactionInput> inputs;
-        for (auto prevTx : prevTxVec) {
-            for (int i = 0; i < prevTx.outputs.size(); ++i) {
-                if (prevTx.outputs[i].publicKey == getIndex() * 2) {
+        for (auto prevTx : prevTxMap) {
+            for (int i = 0; i < prevTx.second.outputs.size(); ++i) {
+                if (prevTx.second.outputs[i].publicKey == getIndex() * 2) {
                     // the transaction output is ours, so check if we've spent the output yet
-                    int outAmount = state.outputsSpent[prevTx.hash][i];
+                    int outAmount = state.outputsSpent[prevTx.second.hash][i];
                     if (outAmount > 0) {
                         TransactionInput txIn;
                         if (outAmount > amount) {
-                            state.outputsSpent[prevTx.hash][i] -= amount;
+                            state.outputsSpent[prevTx.second.hash][i] -= amount;
                             amount = 0;
                         } else {
                             amount -= outAmount;
-                            state.outputsSpent[prevTx.hash][i] = 0;
+                            state.outputsSpent[prevTx.second.hash][i] = 0;
                         }
-                        txIn.prevTxHash = prevTx.hash;
+                        txIn.prevTxHash = prevTx.second.hash;
                         txIn.prevTxN = i;
                         txIn.signature = getIndex() * 2 + 1;
                         inputs.push_back(txIn);
@@ -831,6 +876,7 @@ void POWNode::handleNewTx(SchedulerMessage *msg) {
             }
         }
         if (amount == 0) {
+            coins -= txOut.value;
             tx.outputs.push_back(txOut);
             std::copy(inputs.begin(), inputs.end(), std::back_inserter(tx.inputs));
             tx.hash = blockchain->getMaxTxHash() + 1;
@@ -906,9 +952,32 @@ bool POWNode::checkMessageInScope(POWMessage *msg) {
     return true;
 }
 
+void POWNode::updateOutputsSpent() {
+    if (blockchain->chainHeight() > 0) {
+        EV << "Updating output values for peer " << getIndex() << std::endl;
+        EV_DETAIL << "Chain height = " << blockchain->chainHeight() << std::endl;
+        EV_DETAIL << "Chain tip has " << blockchain->getTip().getTx().size() << " transactions." << std::endl;
+        for (auto tx : blockchain->getTip().getTx()) {
+            EV_DETAIL << "Transaction with hash " << tx.second.hash << " has " << tx.second.outputs.size() << " outputs." << std::endl;
+            for (int i = 0; i < tx.second.outputs.size(); ++i) {
+                if (tx.second.outputs[i].publicKey == getIndex() * 2) {
+                    EV_DETAIL << "Transaction output index " << i << " has an output directed towards us.  Updating number of coins." << std::endl;
+                    if (state.outputsSpent.find(tx.second.hash) == state.outputsSpent.end()) {
+                        std::map<int,int> blankMap;
+                        state.outputsSpent[tx.second.hash] = blankMap;
+                    }
+                    int value = tx.second.outputs[i].value;
+                    state.outputsSpent[tx.second.hash][i] = value;
+                    coins += value;
+                }
+            }
+        }
+    }
+}
+
 void POWNode::refreshDisplay() const {
-    char buf[40];
-    sprintf(buf, "chainheight: %ld", chainHeight);
+    char buf[128];
+    sprintf(buf, "chainheight: %d, coins: %d", chainHeight, coins);
     getDisplayString().setTagArg("t", 0, buf);
 }
 #endif

@@ -264,6 +264,8 @@ private:
      */
     void relayAddress(int address);
 
+    void updateOutputsSpent();
+
     POWNode *getPeerNodeByPath(int address) {
         std::string nodePath = "node[" + std::to_string(address) + "]";
         return check_and_cast<POWNode*>(getModuleByPath(nodePath.c_str()));
@@ -291,6 +293,7 @@ private:
     double randomAddressFraction;
     int coinbaseOutput;
     bool newNetwork;
+    int stopAddrPollingTime;
     std::vector<int> defaultNodes;
     std::unique_ptr<MessageGenerator> messageGen;
     // maintain data known about each peer
@@ -304,6 +307,7 @@ private:
     std::string dataDir;
     POWNodeState state;
     int chainHeight;
+    int coins;
 };
 
 Define_Module(POWNode)

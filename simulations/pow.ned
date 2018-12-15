@@ -34,6 +34,7 @@ simple POWNode extends P2PNode {
         double randomAddressFraction = default(1);  // fraction from 0 to 1
         int blockSyncRecency = default(240); // number of seconds a block for a block to be considered young
         int coinbaseOutput;
+        int stopAddrPollingTime;
     @class(POWNode);
     gates:
         input fromScheduler;
@@ -54,6 +55,7 @@ network POWNetwork {
         string scheduleFileName = default("schedule.txt");
         int count;
         int timeToStartSchedule;
+        int stopAddrPollingTime;
         string miners;
         string netDefaultNodeList;
         int coinbaseOutput;  // output in cents of a coinbase transaction (creation of a new coin)
@@ -64,6 +66,7 @@ network POWNetwork {
             defaultNodeList = netDefaultNodeList;
             newNetwork = isNewNetwork;
             coinbaseOutput = coinbaseOutput;
+            stopAddrPollingTime = stopAddrPollingTime;
         }
         scheduler : POWScheduler {
             scheduleFileName = scheduleFileName;

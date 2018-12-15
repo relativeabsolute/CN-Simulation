@@ -61,4 +61,5 @@ void POWScheduler::handleMessage(cMessage *msg) {
             }
         }
     }
+    delete msg;
 }

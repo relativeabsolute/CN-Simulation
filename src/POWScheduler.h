@@ -23,7 +23,7 @@ using namespace omnetpp;
 class POWScheduler: public cSimpleModule {
 public:
     static constexpr const char *SCHEDULER_MESSAGE_NEW_BLOCK = "schedulenewblock";
-    static constexpr const char *SCHEDULER_MESSAGE_TX = "scheduletx";
+    static constexpr const char *SCHEDULER_MESSAGE_TX = "schedulenewtx";
 
     POWScheduler();
     virtual ~POWScheduler();

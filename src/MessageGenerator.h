@@ -42,7 +42,7 @@ public:
     static constexpr const char *MESSAGE_GETHEADERS_COMMAND = "getheaders";
     static constexpr const char *MESSAGE_HEADERS_COMMAND = "headers";
     static constexpr const char *MESSAGE_GETBLOCKS_COMMAND = "getblocks";
-    static constexpr const char *MESSAGE_BLOCKS = "blocks";
+    static constexpr const char *MESSAGE_BLOCKS_COMMAND = "blocks";
 
     explicit MessageGenerator(int versionNo) : versionNo(versionNo) {
         initMessageScopes();
@@ -80,7 +80,7 @@ public:
     }
 
     BlocksMessage *generateBlocksMessage(int sourceIndex, const std::vector<Block> blocks) {
-        auto result = generateMessage<BlocksMessage>(sourceIndex, MESSAGE_GETBLOCKS_COMMAND);
+        auto result = generateMessage<BlocksMessage>(sourceIndex, MESSAGE_BLOCKS_COMMAND);
         result->setBlocks(blocks);
         return result;
     }
@@ -123,6 +123,8 @@ private:
         messageScopes.insert(std::make_pair(MESSAGE_GETHEADERS_COMMAND, "00"));
         messageScopes.insert(std::make_pair(MESSAGE_HEADERS_COMMAND, "00"));
         messageScopes.insert(std::make_pair(MESSAGE_TX_COMMAND, "00"));
+        messageScopes.insert(std::make_pair(MESSAGE_GETBLOCKS_COMMAND, "00"));
+        messageScopes.insert(std::make_pair(MESSAGE_BLOCKS_COMMAND, "00"));
     }
 
     int versionNo;
