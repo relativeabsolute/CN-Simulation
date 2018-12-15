@@ -35,6 +35,3 @@ Notice the first block has propagated through most of the network (chain height 
 ## Final state
 The final state of the network involves the full propagation of both blocks, and node 2 receiving the 20 coins in the transaction from node 1.
 ![step6](./final_step6.png)
-
-Currently simulation creates a mesh of randomly interconnected nodes.  A message is created with a random destination and forwarded until the destination is reached.  The destination node then creates a new message, and the process repeats.  An example with 10 nodes is shown here:
-![Example](./sim_example.png)
